@@ -1,0 +1,13 @@
+version: '2'
+sql:
+- engine: sqlite
+  schema: schema.sql
+  queries: queries.sql
+  gen:
+    go:
+      sql_package: database/sql
+      package: sqlite
+      out: .
+      emit_interface: true
+      emit_pointers_for_null_types: true
+      emit_sql_as_comment: true

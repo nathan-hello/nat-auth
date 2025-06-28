@@ -1,10 +1,11 @@
-package lib
+package auth
 
 import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/nathan-hello/nat-auth/utils"
 )
 
 type CustomClaims struct {
@@ -26,7 +27,7 @@ func NewTokenPair(j *JwtParams) (string, string, error) {
 		j.Family = uuid.New().String()
 	}
 	ac := jwt.MapClaims{
-		"exp":      time.Now().Add(LocalConfig().AccessExpiry).Unix(),
+		"exp":      time.Now().Add(utils.LocalConfig().AccessExpiry).Unix(),
 		"iat":      time.Now().Unix(),
 		"iss":      "no-magic-stack-example",
 		"sub":      j.UserId,
@@ -37,13 +38,13 @@ func NewTokenPair(j *JwtParams) (string, string, error) {
 
 	access := jwt.NewWithClaims(jwt.SigningMethodHS256, &ac)
 
-	as, err := access.SignedString([]byte(LocalConfig().Secret))
+	as, err := access.SignedString([]byte(utils.LocalConfig().Secret))
 	if err != nil {
 		return "", "", err
 	}
 
 	rc := jwt.MapClaims{
-		"exp":      time.Now().Add(LocalConfig().RefreshExpiry).Unix(),
+		"exp":      time.Now().Add(utils.LocalConfig().RefreshExpiry).Unix(),
 		"iat":      time.Now().Unix(),
 		"iss":      "no-magic-stack-example",
 		"sub":      j.UserId,
@@ -53,7 +54,7 @@ func NewTokenPair(j *JwtParams) (string, string, error) {
 	}
 
 	refresh := jwt.NewWithClaims(jwt.SigningMethodHS256, &rc)
-	rs, err := refresh.SignedString([]byte(LocalConfig().Secret))
+	rs, err := refresh.SignedString([]byte(utils.LocalConfig().Secret))
 	if err != nil {
 		return "", "", err
 	}
@@ -69,9 +70,9 @@ func ParseToken(t string) (*CustomClaims, error) {
 			if !ok {
 				// this error will not show unless logged because
 				// the jwt library wraps this error
-				return nil, ErrJwtMethodBad
+				return nil, utils.ErrJwtMethodBad
 			}
-			return []byte(LocalConfig().Secret), nil
+			return []byte(utils.LocalConfig().Secret), nil
 		})
 
 	if err != nil {
@@ -84,7 +85,7 @@ func ParseToken(t string) (*CustomClaims, error) {
 
 	claims, ok := token.Claims.(*CustomClaims)
 	if !ok {
-		return nil, ErrParsingJwt
+		return nil, utils.ErrParsingJwt
 	}
 
 	return claims, nil
@@ -93,22 +94,22 @@ func ParseToken(t string) (*CustomClaims, error) {
 
 func ValidateJwtFromString(t string) error {
 	token, err := jwt.Parse(
-		t, func(token *jwt.Token) (interface{}, error) {
+		t, func(token *jwt.Token) (any, error) {
 			ok := token.Method.Alg() == "HS256"
 			if !ok {
 				// this error will not show unless logged because
 				// the jwt library wraps this error
-				return nil, ErrJwtMethodBad
+				return nil, utils.ErrJwtMethodBad
 			}
-			return []byte(LocalConfig().Secret), nil
+			return []byte(utils.LocalConfig().Secret), nil
 		})
 
 	if err != nil {
-		return ErrParsingJwt
+		return utils.ErrParsingJwt
 	}
 
 	if !token.Valid {
-		return ErrInvalidToken
+		return utils.ErrInvalidToken
 	}
 	return nil
 }
@@ -139,7 +140,7 @@ func ValidatePairOrRefresh(a string, r string) (string, string, error) {
 		}
 		// if access is good but refresh is bad, we don't refresh based off
 		// of access tokens, so it's better to just error and reauth
-		return "", "", ErrJwtGoodAccBadRef
+		return "", "", utils.ErrJwtGoodAccBadRef
 	}
 
 	// even if access was bad, maybe the refresh is good

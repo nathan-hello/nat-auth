@@ -1,9 +1,11 @@
-package lib
+package httpwr
 
 import (
 	"context"
 	"log"
 	"net/http"
+
+	"github.com/nathan-hello/nat-auth/auth"
 )
 
 type ClaimsContextType struct{}
@@ -19,7 +21,7 @@ func InjectClaimsOnValidToken(next http.Handler) http.Handler {
 			return
 		}
 
-		claims, err := ParseToken(access)
+		claims, err := auth.ParseToken(access)
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return

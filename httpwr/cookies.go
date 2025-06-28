@@ -1,8 +1,11 @@
-package lib
+package httpwr
 
 import (
 	"net/http"
 	"time"
+
+	"github.com/nathan-hello/nat-auth/auth"
+	"github.com/nathan-hello/nat-auth/utils"
 )
 
 func SetTokenCookies(w http.ResponseWriter, a string, r string) {
@@ -10,9 +13,9 @@ func SetTokenCookies(w http.ResponseWriter, a string, r string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "access_token",
 		Value:    a,
-		Expires:  time.Now().Add(LocalConfig().AccessExpiry),
-		Secure:   LocalConfig().SecureCookie,
-		HttpOnly: LocalConfig().SecureCookie,
+		Expires:  time.Now().Add(utils.LocalConfig().AccessExpiry),
+		Secure:   utils.LocalConfig().SecureCookie,
+		HttpOnly: utils.LocalConfig().SecureCookie,
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
 	})
@@ -20,9 +23,9 @@ func SetTokenCookies(w http.ResponseWriter, a string, r string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "refresh_token",
 		Value:    r,
-		Expires:  time.Now().Add(LocalConfig().RefreshExpiry),
-		Secure:   LocalConfig().SecureCookie,
-		HttpOnly: LocalConfig().SecureCookie,
+		Expires:  time.Now().Add(utils.LocalConfig().RefreshExpiry),
+		Secure:   utils.LocalConfig().SecureCookie,
+		HttpOnly: utils.LocalConfig().SecureCookie,
 		Path:     "/",
 		SameSite: http.SameSiteStrictMode,
 	})
@@ -75,7 +78,7 @@ func ValidateJwtOrDelete(w http.ResponseWriter, r *http.Request) (string, bool) 
 		return "", false
 	}
 
-	vAccess, vRefresh, err := ValidatePairOrRefresh(access.Value, refresh.Value)
+	vAccess, vRefresh, err := auth.ValidatePairOrRefresh(access.Value, refresh.Value)
 
 	if err != nil {
 		DeleteCookie(w, "access_token")

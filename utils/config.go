@@ -1,9 +1,7 @@
-package lib
+package utils
 
 import (
 	"time"
-
-	"github.com/nathan-hello/nat-auth/db"
 )
 
 type ConfigJwt struct {
@@ -32,17 +30,4 @@ func LocalConfig() *Config {
 		panic("natauth/lib/config.go could not find Config")
 	}
 	return localConfig
-}
-
-var localDb db.Accessor
-
-func InitDb(c db.Accessor) {
-	localDb = c
-}
-
-func LocalDb() db.Accessor {
-	if localDb == nil {
-		panic("natauth/lib/config.go could not find Db")
-	}
-	return localDb
 }

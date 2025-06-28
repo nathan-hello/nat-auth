@@ -1,11 +1,5 @@
-package natauth
+package main
 
-import (
-	"github.com/nathan-hello/nat-auth/db"
-	"github.com/nathan-hello/nat-auth/lib"
-)
+func main() {
 
-func New(c lib.Config, d db.Accessor) {
-	lib.InitConfig(c)
-	lib.InitDb(d)
 }

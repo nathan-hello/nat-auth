@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+var US = "\x1f"
+
 type VK struct {
 	Addr string
 }
@@ -36,14 +38,15 @@ func buildSetCommand(key string, val []byte, expiry time.Duration) []byte {
 	return cmd
 }
 
-func (vk *VK) Set(key string, val []byte, expiry time.Duration) error {
-	c, err := net.DialTCP(vk.Addr, nil, nil)	
+func (vk *VK) Set(key []string, val []byte, expiry time.Duration) error {
+	c, err := net.DialTCP(vk.Addr, nil, nil)
 	if err != nil {
 		return err
 	}
 	defer c.Close()
+	joined := strings.Join(key, US)
 
-	_, err = c.Write(buildSetCommand(key, val, expiry))
+	_, err = c.Write(buildSetCommand(joined, val, expiry))
 	if err != nil {
 		return err
 	}
@@ -52,63 +55,78 @@ func (vk *VK) Set(key string, val []byte, expiry time.Duration) error {
 	if err != nil {
 		return err
 	}
-	return nil
-}
-
-func (vk *VK) Get(key string) ([]byte, error) {
-	c, err := net.DialTCP(vk.Addr, nil, nil)	
-	if err != nil {
-		return nil, err
-	}
-	defer c.Close()
-
-	_, err = fmt.Fprintf(c, "*2\r\n$3\r\nGET\r\n$%d\r\n%s\r\n", len(key), key)
-	if err != nil {
-		return nil, err
-	}
-	var buf []byte
-	_, err = c.Read(buf)
-	if err != nil {
-		return nil, err
-	}
-	return buf, nil
-}
-
-func (vk *VK) Del(key string) error {
-	c, err := net.DialTCP(vk.Addr, nil, nil)	
-	if err != nil {
-		return err
-	}
-	defer c.Close()
-
-	_, err = fmt.Fprintf(c, "*2\r\n$3\r\nDEL\r\n$%d\r\n%s\r\n", len(key), key)
-	if err != nil {
-		return err
-	}
-	var buf []byte
-	_, err = c.Read(buf)
-	if err != nil {
-		return err
-	}
-	if strings.HasPrefix(string(buf), "(error)") || strings.HasPrefix(string(buf), "(nil)") {
+	if strings.HasPrefix(string(buf), "(error)") {
 		return errors.New((string(buf)))
 	}
 	return nil
 }
 
-func (vk *VK) Scan(pattern string, ch chan []byte) error {
-	c, err := net.DialTCP(vk.Addr, nil, nil)	
+func (vk *VK) Get(key []string) ([]byte, error) {
+	c, err := net.DialTCP(vk.Addr, nil, nil)
 	if err != nil {
-		return  err
+		return nil, err
 	}
 	defer c.Close()
+	joined := strings.Join(key, US)
+
+	_, err = fmt.Fprintf(c, "*2\r\n$3\r\nGET\r\n$%d\r\n%s\r\n", len(joined), joined)
+	if err != nil {
+		return nil, err
+	}
+	var buf []byte
+	_, err = c.Read(buf)
+	if err != nil {
+		return nil, err
+	}
+	if strings.HasPrefix(string(buf), "(nil)") {
+		return nil, errors.New("row does not exist")
+	}
+	if strings.HasPrefix(string(buf), "(error)") {
+		return nil, errors.New((string(buf)))
+	}
+	return buf, nil
+}
+
+func (vk *VK) Del(key []string) error {
+	c, err := net.DialTCP(vk.Addr, nil, nil)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+	joined := strings.Join(key, US)
+
+	_, err = fmt.Fprintf(c, "*2\r\n$3\r\nDEL\r\n$%d\r\n%s\r\n", len(joined), joined)
+	if err != nil {
+		return err
+	}
+	var buf []byte
+	_, err = c.Read(buf)
+	if err != nil {
+		return err
+	}
+	if strings.HasPrefix(string(buf), "(nil)") {
+		return errors.New("row does not exist")
+	}
+	if strings.HasPrefix(string(buf), "(error)") {
+		return errors.New((string(buf)))
+	}
+	return nil
+}
+
+func (vk *VK) Scan(pattern []string, ch chan []byte) error {
+	c, err := net.DialTCP(vk.Addr, nil, nil)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+	joined := strings.Join(pattern, US)
 
 	cursor := "0"
 	r := bufio.NewReader(c)
 
 	for cursor != "0" {
 		cmd := fmt.Sprintf("*4\r\n$4\r\nSCAN\r\n$%d\r\n%s\r\n$5\r\nMATCH\r\n$%d\r\n%s\r\n",
-			len(cursor), cursor, len(pattern), pattern)
+			len(cursor), cursor, len(joined), joined)
 		_, err = c.Write([]byte(cmd))
 		if err != nil {
 			return err

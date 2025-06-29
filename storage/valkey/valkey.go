@@ -55,6 +55,9 @@ func (vk *VK) Set(key []string, val []byte, expiry time.Duration) error {
 	if err != nil {
 		return err
 	}
+	if strings.HasPrefix(string(buf), "(error)") {
+		return errors.New((string(buf)))
+	}
 	return nil
 }
 
@@ -74,6 +77,12 @@ func (vk *VK) Get(key []string) ([]byte, error) {
 	_, err = c.Read(buf)
 	if err != nil {
 		return nil, err
+	}
+	if strings.HasPrefix(string(buf), "(nil)") {
+		return nil, errors.New("row does not exist")
+	}
+	if strings.HasPrefix(string(buf), "(error)") {
+		return nil, errors.New((string(buf)))
 	}
 	return buf, nil
 }
@@ -95,7 +104,10 @@ func (vk *VK) Del(key []string) error {
 	if err != nil {
 		return err
 	}
-	if strings.HasPrefix(string(buf), "(error)") || strings.HasPrefix(string(buf), "(nil)") {
+	if strings.HasPrefix(string(buf), "(nil)") {
+		return errors.New("row does not exist")
+	}
+	if strings.HasPrefix(string(buf), "(error)") {
 		return errors.New((string(buf)))
 	}
 	return nil

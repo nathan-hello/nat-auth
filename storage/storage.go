@@ -1,11 +1,10 @@
 package storage
 
-
+import "time"
 
 type StorageAdapter interface {
-  Get(key []string) map[string]any
-  Remove(key []string)
-  Insert(key []string, value []byte, expiry time.Time)
-  Scan(prefix []string) AsyncIterable<[string[], any]>
+	Set(key string, val []byte, expiry time.Time) error
+	Get(key string) ([]byte, error)
+	Del(key string) error
+	Scan(pattern string, ch chan []byte) error
 }
-

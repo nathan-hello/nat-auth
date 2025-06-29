@@ -59,9 +59,14 @@ var (
 		Message:  "username is already taken",
 		Category: "username",
 	}
-	ErrPasswordInvalid = AuthError{
+	ErrPasswordTooShort = AuthError{
 		Code:     8,
 		Message:  "password must be at least 8 characters long",
+		Category: "password",
+	}
+	ErrPasswordTooLong = AuthError{
+		Code:     8,
+		Message:  "password must not be more than 72 characters long",
 		Category: "password",
 	}
 	ErrPassNoMatch = AuthError{
@@ -78,20 +83,24 @@ var (
 
 // System errors that should not be exposed to users
 var (
-	ErrHashPassword = AuthError{
-		Code:     1,
-		Message:  "failed to hash password",
-		Category: "system",
+	ErrHashPassword = func(msg string) AuthError {
+		return AuthError{
+			Code:     1,
+			Message:  msg,
+			Category: "system",
+		}
 	}
 	ErrDbInsertUser = AuthError{
 		Code:     2,
 		Message:  "failed to insert user",
 		Category: "system",
 	}
-	ErrDbSelectAfterInsert = AuthError{
-		Code:     3,
-		Message:  "failed to retrieve user after insert",
-		Category: "system",
+	ErrDbSelectAfterInsert = func(msg string) AuthError {
+		return AuthError{
+			Code:     3,
+			Message:  msg,
+			Category: "system",
+		}
 	}
 	ErrParsingJwt = AuthError{
 		Code:     4,
@@ -157,6 +166,18 @@ var (
 		Code:     16,
 		Message:  "failed to update tokens invalid",
 		Category: "system",
+	}
+	ErrDbSelectUserSubject = AuthError{
+		Code:     17,
+		Message:  "failed to select user's subject by username",
+		Category: "system",
+	}
+	ErrUuidFailed = func(msg string) AuthError {
+		return AuthError{
+			Code:     18,
+			Message:  "failed to update tokens invalid",
+			Category: "system",
+		}
 	}
 )
 

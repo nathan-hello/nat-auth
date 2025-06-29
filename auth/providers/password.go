@@ -3,9 +3,10 @@ package providers
 import (
 	"net/http"
 	"regexp"
-	"strings"
 
-	"github.com/nathan-hello/nat-auth/auth/err"
+	"github.com/nathan-hello/nat-auth/auth/problems"
+	"github.com/nathan-hello/nat-auth/storage"
+	"github.com/nathan-hello/nat-auth/utils"
 )
 
 type Hasher interface {
@@ -14,8 +15,9 @@ type Hasher interface {
 }
 
 type PasswordConfig struct {
-	PasswordValidate func(s string) bool
-	UsernameValidate func(s string) bool
+	PasswordValidate func(s string) []problems.AuthError
+	UsernameValidate func(s string) []problems.AuthError
+	Storage          storage.StorageAdapter
 	Hasher           Hasher
 }
 
@@ -23,58 +25,48 @@ type PasswordHandler struct {
 	Config PasswordConfig
 }
 
-func (p *PasswordHandler) Register(w http.ResponseWriter, r *http.Request) ([]byte, []err.AuthError) {
-	var buf []byte
+// /register
+func (p *PasswordHandler) Register(r *http.Request) []problems.AuthError {
+	var errs []problems.AuthError
 
 	if err := r.ParseForm(); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(buf)
-		return buf, nil
+		return errs
 	}
 
 	username := r.FormValue("username")
 	password := r.FormValue("password")
+	repeat := r.FormValue("repeat")
 
-	if !p.Config.UsernameValidate(username) || !p.Config.PasswordValidate(password) {
-
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(buf)
-
-		return
+	errs = append(errs, p.Config.UsernameValidate(username)...)
+	errs = append(errs, p.Config.PasswordValidate(password)...)
+	if password != repeat {
+		errs = append(errs, problems.ErrPassNoMatch)
+	}
+	if len(errs) > 0 {
+		return errs
 	}
 
-	w.Write(buf)
-	return buf, nil
+	enc := p.Config.Hasher.Hash([]byte(password))
+
+	return nil
 
 }
 
-func defaultUsernameValidate(username string) []err.AuthError {
+func defaultUsernameValidate(username string) []problems.AuthError {
 	var usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
-	var errs []err.AuthError
+	var errs []problems.AuthError
 
-	username = sanitizeInput(username)
+	username = utils.SanitizeInput(username)
 
 	if len(username) < 3 {
-		errs = append(errs, err.ErrUsernameTooShort)
+		errs = append(errs, problems.ErrUsernameTooShort)
 	}
 	if len(username) > 32 {
-		errs = append(errs, err.ErrUsernameTooLong)
+		errs = append(errs, problems.ErrUsernameTooLong)
 	}
 	if !usernameRegex.MatchString(username) {
-		errs = append(errs, err.ErrUsernameInvalidFormat)
+		errs = append(errs, problems.ErrUsernameInvalidFormat)
 	}
 
 	return errs
-}
-
-func sanitizeInput(input string) string {
-	// Remove HTML tags and special characters
-	input = strings.TrimSpace(input)
-	input = strings.Map(func(r rune) rune {
-		if r < 32 || r == 127 {
-			return -1 // Remove control characters
-		}
-		return r
-	}, input)
-	return input
 }

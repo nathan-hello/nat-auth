@@ -1,4 +1,4 @@
-package err
+package problems
 
 import (
 	"errors"
@@ -6,7 +6,7 @@ import (
 )
 
 type AuthError struct {
-	Code     string
+	Code     uint16
 	Message  string // User-facing message
 	Category string // Field or category (e.g. "username", "password", "system")
 	Err      error
@@ -25,52 +25,52 @@ func (e AuthError) Unwrap() error {
 
 var (
 	ErrUsernameTooShort = AuthError{
-		Code:     "AUTH_001",
+		Code:     1,
 		Message:  "username must be at least 3 characters long",
 		Category: "username",
 	}
 	ErrUsernameTooLong = AuthError{
-		Code:     "AUTH_002",
+		Code:     2,
 		Message:  "username must be at most 30 characters long",
 		Category: "username",
 	}
 	ErrUsernameInvalidFormat = AuthError{
-		Code:     "AUTH_003",
+		Code:     3,
 		Message:  "username can only contain letters, numbers, underscores, and hyphens",
 		Category: "username",
 	}
 	ErrEmailInvalid = AuthError{
-		Code:     "AUTH_004",
+		Code:     4,
 		Message:  "invalid email format",
 		Category: "email",
 	}
 	ErrEmailOrUsernameReq = AuthError{
-		Code:     "AUTH_005",
+		Code:     5,
 		Message:  "email or username is required",
 		Category: "username",
 	}
 	ErrEmailTaken = AuthError{
-		Code:     "AUTH_006",
+		Code:     6,
 		Message:  "email is already taken",
 		Category: "email",
 	}
 	ErrUsernameTaken = AuthError{
-		Code:     "AUTH_007",
+		Code:     7,
 		Message:  "username is already taken",
 		Category: "username",
 	}
 	ErrPasswordInvalid = AuthError{
-		Code:     "AUTH_008",
+		Code:     8,
 		Message:  "password must be at least 8 characters long",
 		Category: "password",
 	}
 	ErrPassNoMatch = AuthError{
-		Code:     "AUTH_009",
+		Code:     9,
 		Message:  "passwords do not match",
 		Category: "password",
 	}
 	ErrBadLogin = AuthError{
-		Code:     "AUTH_010",
+		Code:     10,
 		Message:  "invalid username/email or password",
 		Category: "login",
 	}
@@ -79,82 +79,82 @@ var (
 // System errors that should not be exposed to users
 var (
 	ErrHashPassword = AuthError{
-		Code:     "SYS_001",
+		Code:     1,
 		Message:  "failed to hash password",
 		Category: "system",
 	}
 	ErrDbInsertUser = AuthError{
-		Code:     "SYS_002",
+		Code:     2,
 		Message:  "failed to insert user",
 		Category: "system",
 	}
 	ErrDbSelectAfterInsert = AuthError{
-		Code:     "SYS_003",
+		Code:     3,
 		Message:  "failed to retrieve user after insert",
 		Category: "system",
 	}
 	ErrParsingJwt = AuthError{
-		Code:     "SYS_004",
+		Code:     4,
 		Message:  "failed to parse JWT",
 		Category: "system",
 	}
 	ErrInvalidToken = AuthError{
-		Code:     "SYS_005",
+		Code:     5,
 		Message:  "invalid token",
 		Category: "system",
 	}
 	ErrJwtNotInHeader = AuthError{
-		Code:     "SYS_006",
+		Code:     6,
 		Message:  "JWT not found in header",
 		Category: "system",
 	}
 	ErrJwtNotInDb = AuthError{
-		Code:     "SYS_007",
+		Code:     7,
 		Message:  "JWT not found in database",
 		Category: "system",
 	}
 	ErrJwtMethodBad = AuthError{
-		Code:     "SYS_008",
+		Code:     8,
 		Message:  "invalid JWT signing method",
 		Category: "system",
 	}
 	ErrJwtInvalidInDb = AuthError{
-		Code:     "SYS_009",
+		Code:     9,
 		Message:  "JWT marked as invalid in database",
 		Category: "system",
 	}
 	ErrDbConnection = AuthError{
-		Code:     "SYS_010",
+		Code:     10,
 		Message:  "database connection error",
 		Category: "system",
 	}
 	ErrDbInsertToken = AuthError{
-		Code:     "SYS_011",
+		Code:     11,
 		Message:  "failed to insert token",
 		Category: "system",
 	}
 	ErrDbSelectUserFromToken = AuthError{
-		Code:     "SYS_012",
+		Code:     12,
 		Message:  "failed to select user from token",
 		Category: "system",
 	}
 	ErrJwtGoodAccBadRef = AuthError{
-		Code:     "SYS_013",
+		Code:     13,
 		Message:  "access token was good but refresh was bad",
 		Category: "system",
 	}
 	ErrDbInsertUsersToken = AuthError{
-		Code:     "SYS_014",
+		Code:     14,
 		Message:  "failed to insert users tokens",
 		Category: "system",
 	}
 	ErrDbSelectUserFromJwt = AuthError{
-		Code:     "SYS_015",
+		Code:     15,
 		Message:  "failed to select user from JWT",
 		Category: "system",
 	}
 	ErrDbUpdateTokensInvalid = AuthError{
-		Code:     "SYS_016",
+		Code:     16,
 		Message:  "failed to update tokens invalid",
 		Category: "system",
 	}
@@ -190,7 +190,7 @@ func IsSystemError(err error) bool {
 
 func NewSystemError(err error) AuthError {
 	return AuthError{
-		Code:     "SYS_017",
+		Code:     99,
 		Message:  "internal server error",
 		Category: "system",
 		Err:      err,
@@ -228,17 +228,17 @@ var (
 
 var (
 	ErrSessionNotFound = AuthError{
-		Code:     "AUTH_010",
+		Code:     10,
 		Message:  "session not found",
 		Category: "session",
 	}
 	ErrSessionExpired = AuthError{
-		Code:     "AUTH_011",
+		Code:     11,
 		Message:  "session has expired",
 		Category: "session",
 	}
 	ErrSessionInvalid = AuthError{
-		Code:     "AUTH_012",
+		Code:     12,
 		Message:  "session is invalid",
 		Category: "session",
 	}

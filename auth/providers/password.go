@@ -9,19 +9,14 @@ import (
 	"github.com/nathan-hello/nat-auth/auth/components"
 	"github.com/nathan-hello/nat-auth/auth/problems"
 	"github.com/nathan-hello/nat-auth/httpwr"
+	"github.com/nathan-hello/nat-auth/storage"
 	"github.com/nathan-hello/nat-auth/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type PasswordDatabase interface {
-	InsertUser(username string, password []byte, subject string) error
-	SelectSubjectByUsername(username string) (string, error)
-	SelectPasswordByUsername(username string) ([]byte, error)
-}
-
 type PasswordHandler struct {
 	UsernameValidate    func(s string) problems.BitError
-	Database            PasswordDatabase
+	Database            storage.DB
 	RedirectAfterSignUp func(ctx context.Context) string
 	RedirectAfterSignIn func(ctx context.Context) string
 }

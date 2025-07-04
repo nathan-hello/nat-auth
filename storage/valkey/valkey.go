@@ -13,6 +13,11 @@ import (
 	"github.com/nathan-hello/nat-auth/utils"
 )
 
+type ScanResult struct {
+	Data  []byte
+	Error error
+}
+
 var US = "\x1f"
 
 type VK struct {
@@ -106,17 +111,17 @@ func (vk *VK) del(key []string) error {
 	return nil
 }
 
-func (vk *VK) scan(pattern []string) chan storage.ScanResult {
+func (vk *VK) scan(pattern []string) chan ScanResult {
 	joined := strings.Join(pattern, US)
 
-	ch := make(chan storage.ScanResult, 1)
+	ch := make(chan ScanResult, 1)
 	defer close(ch)
 
 	cursor := "0"
 	conn := vk.ConnManager.GetConn()
 	if conn == nil {
 		if err := vk.ConnManager.Connect(); err != nil {
-			iter := storage.ScanResult{Error: err}
+			iter := ScanResult{Error: err}
 			ch <- iter
 			return ch
 		}
@@ -124,7 +129,7 @@ func (vk *VK) scan(pattern []string) chan storage.ScanResult {
 	}
 	r := bufio.NewReader(conn)
 
-	iter := storage.ScanResult{}
+	iter := ScanResult{}
 	cmd := fmt.Sprintf("*4\r\n$4\r\nSCAN\r\n$%d\r\n%s\r\n$5\r\nMATCH\r\n$%d\r\n%s\r\n",
 		len(cursor), cursor, len(joined), joined)
 	_, err := vk.ConnManager.Write([]byte(cmd))

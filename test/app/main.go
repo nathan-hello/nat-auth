@@ -2,22 +2,38 @@ package main
 
 import (
 	"context"
-	"net"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/nathan-hello/nat-auth/auth/providers"
 	"github.com/nathan-hello/nat-auth/httpwr"
+	"github.com/nathan-hello/nat-auth/storage"
 	"github.com/nathan-hello/nat-auth/storage/valkey"
+	"github.com/nathan-hello/nat-auth/utils"
 )
 
 func main() {
-	conn, err := net.Dial("tcp", "127.0.0.1:6379")
-	if err != nil {
+	// Create a robust connection manager
+	connManager := storage.NewConnectionManager("127.0.0.1:6379", 5, time.Second, 10*time.Second)
+
+	// Attempt initial connection
+	if err := connManager.Connect(); err != nil {
+		utils.Log("main").Error("Failed to connect to Valkey: %v", err)
 		panic(err)
 	}
 
+	// Setup graceful shutdown
+	defer func() {
+		if err := connManager.Close(); err != nil {
+			utils.Log("main").Error("Error closing connection: %v", err)
+		}
+	}()
+
 	store := valkey.VK{
-		Client: conn,
+		ConnManager: connManager,
 	}
 
 	p := providers.PasswordHandler{
@@ -34,5 +50,19 @@ func main() {
 	http.Handle("/auth/signup", httpwr.Logger(http.HandlerFunc(p.RegisterHandler)))
 	http.Handle("/auth/signin", httpwr.Logger(http.HandlerFunc(p.AuthorizeHandler)))
 
-	http.ListenAndServe(":3000", nil)
+	// Setup signal handling for graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-sigChan
+		utils.Log("main").Info("Received shutdown signal, closing connections...")
+		connManager.Close()
+		os.Exit(0)
+	}()
+
+	utils.Log("main").Info("Server starting on :3000")
+	if err := http.ListenAndServe(":3000", nil); err != nil {
+		utils.Log("main").Error("Server failed: %v", err)
+	}
 }

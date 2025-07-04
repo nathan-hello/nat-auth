@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -17,7 +16,7 @@ import (
 var US = "\x1f"
 
 type VK struct {
-	Client net.Conn
+	ConnManager storage.ReadWriteConnector
 }
 
 func buildSetCommand(key string, val []byte, expiry *time.Duration) []byte {
@@ -50,12 +49,12 @@ func (vk *VK) set(key []string, val []byte) error {
 func (vk *VK) setWithExpiry(key []string, val []byte, expiry time.Duration) error {
 	joined := strings.Join(key, US)
 
-	_, err := vk.Client.Write(buildSetCommand(joined, val, &expiry))
+	_, err := vk.ConnManager.Write(buildSetCommand(joined, val, &expiry))
 	if err != nil {
 		return err
 	}
-	var buf []byte
-	_, err = vk.Client.Read(buf)
+	buf := make([]byte, 1024)
+	_, err = vk.ConnManager.Read(buf)
 	if err != nil {
 		return err
 	}
@@ -68,12 +67,12 @@ func (vk *VK) setWithExpiry(key []string, val []byte, expiry time.Duration) erro
 func (vk *VK) get(key []string) ([]byte, error) {
 	joined := strings.Join(key, US)
 
-	_, err := fmt.Fprintf(vk.Client, "*2\r\n$3\r\nGET\r\n$%d\r\n%s\r\n", len(joined), joined)
+	_, err := vk.ConnManager.Fprintf("*2\r\n$3\r\nGET\r\n$%d\r\n%s\r\n", len(joined), joined)
 	if err != nil {
 		return nil, err
 	}
-	var buf []byte
-	_, err = vk.Client.Read(buf)
+	buf := make([]byte, 1024)
+	_, err = vk.ConnManager.Read(buf)
 	if err != nil {
 		return nil, err
 	}
@@ -89,12 +88,12 @@ func (vk *VK) get(key []string) ([]byte, error) {
 func (vk *VK) del(key []string) error {
 	joined := strings.Join(key, US)
 
-	_, err := fmt.Fprintf(vk.Client, "*2\r\n$3\r\nDEL\r\n$%d\r\n%s\r\n", len(joined), joined)
+	_, err := vk.ConnManager.Fprintf("*2\r\n$3\r\nDEL\r\n$%d\r\n%s\r\n", len(joined), joined)
 	if err != nil {
 		return err
 	}
-	var buf []byte
-	_, err = vk.Client.Read(buf)
+	buf := make([]byte, 1024)
+	_, err = vk.ConnManager.Read(buf)
 	if err != nil {
 		return err
 	}
@@ -114,12 +113,21 @@ func (vk *VK) scan(pattern []string) chan storage.ScanResult {
 	defer close(ch)
 
 	cursor := "0"
-	r := bufio.NewReader(vk.Client)
+	conn := vk.ConnManager.GetConn()
+	if conn == nil {
+		if err := vk.ConnManager.Connect(); err != nil {
+			iter := storage.ScanResult{Error: err}
+			ch <- iter
+			return ch
+		}
+		conn = vk.ConnManager.GetConn()
+	}
+	r := bufio.NewReader(conn)
 
 	iter := storage.ScanResult{}
 	cmd := fmt.Sprintf("*4\r\n$4\r\nSCAN\r\n$%d\r\n%s\r\n$5\r\nMATCH\r\n$%d\r\n%s\r\n",
 		len(cursor), cursor, len(joined), joined)
-	_, err := vk.Client.Write([]byte(cmd))
+	_, err := vk.ConnManager.Write([]byte(cmd))
 	if err != nil {
 		iter.Error = err
 		ch <- iter

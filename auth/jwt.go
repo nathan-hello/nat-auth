@@ -9,16 +9,14 @@ import (
 
 type CustomClaims struct {
 	jwt.RegisteredClaims
-	UserId   string `json:"sub"`
-	Username string `json:"username"`
-	JwtType  string `json:"jwt_type"`
-	Family   string `json:"family"`
+	UserId  string `json:"sub"`
+	JwtType string `json:"jwt_type"`
+	Family  string `json:"family"`
 }
 
 type JwtParams struct {
-	Username string
-	UserId   string
-	Family   string
+	UserId string `json:"sub"`
+	Family string `json:"family"`
 }
 
 func NewTokenPair(j JwtParams) (string, string, error) {
@@ -33,9 +31,8 @@ func NewTokenPair(j JwtParams) (string, string, error) {
 	ac := jwt.MapClaims{
 		"exp":      time.Now().Add(utils.LocalConfig().AccessExpiry).Unix(),
 		"iat":      time.Now().Unix(),
-		"iss":      "no-magic-stack-example",
+		"iss":      "nat-auth",
 		"sub":      j.UserId,
-		"username": j.Username,
 		"jwt_type": "access_token",
 		"family":   j.Family,
 	}
@@ -50,9 +47,8 @@ func NewTokenPair(j JwtParams) (string, string, error) {
 	rc := jwt.MapClaims{
 		"exp":      time.Now().Add(utils.LocalConfig().RefreshExpiry).Unix(),
 		"iat":      time.Now().Unix(),
-		"iss":      "no-magic-stack-example",
+		"iss":      "nat-auth",
 		"sub":      j.UserId,
-		"username": j.Username,
 		"jwt_type": "refresh_token",
 		"family":   j.Family,
 	}
@@ -123,7 +119,7 @@ func NewPairFromRefresh(r string) (string, string, error) {
 		return "", "", err
 	}
 
-	access, refresh, err := NewTokenPair(JwtParams{UserId: claims.UserId, Username: claims.Username})
+	access, refresh, err := NewTokenPair(JwtParams{UserId: claims.UserId})
 	if err != nil {
 		return "", "", err
 	}
@@ -147,13 +143,14 @@ func ValidatePairOrRefresh(a string, r string) (string, string, error) {
 	}
 
 	// even if access was bad, maybe the refresh is good
-	// err = ValidateJwtFromString(r)
-	// if err != nil {
-	// 	if err == utils.ErrJwtInvalidInDb {
-	// 		return "", "", DbInvalidateJwtFamily(r)
-	// 	}
-	// 	return "", "", err
-	// }
+	err = ValidateJwtFromString(r)
+	if err != nil {
+		if err == utils.ErrJwtInvalidInDb {
+			utils.Log("jwt").Error("ValidatePairOrRefresh: jwt invalid in db, invalidating family")
+			return "", "", utils.ErrJwtInvalidInDb
+		}
+		return "", "", err
+	}
 
 	// sweet, a good refresh jwt. let's make a new pair
 	access, refresh, err := NewPairFromRefresh(r)

@@ -43,9 +43,6 @@ func (p PasswordHandler) RegisterHandler(w http.ResponseWriter, r *http.Request)
 		password := r.FormValue("password")
 		repeated := r.FormValue("repeated")
 
-		// DANGEROUS: log passwords
-		utils.Log("register-handler").Debug("username: %s, password: %s, repeated: %s", username, password, repeated)
-
 		params, errs := p.postRegister(username, password, repeated) // Work gets done here
 		if errs.Count() > 0 {
 			utils.Log("register-handler").Error("postRegister failed: %#v", errs.RenderMessages())
@@ -68,18 +65,12 @@ func (p PasswordHandler) RegisterHandler(w http.ResponseWriter, r *http.Request)
 
 		redirect := p.RedirectAfterSignUp(r.Context())
 		w.Header().Set("HX-Redirect", redirect)
-
-		utils.Log("register-handler").Debug("redirected %s to %s", username, redirect)
 		return
 	}
 
 }
 
 func (p PasswordHandler) postRegister(username, password, repeat string) (*auth.JwtParams, problems.BitError) {
-
-	// DANGEROUS: log passwords
-	utils.Log("post-register").Debug("username: %s, password: %s, repeat: %s", username, password, repeat)
-
 	var errs problems.BitError
 	if p.UsernameValidate == nil {
 		p.UsernameValidate = defaultUsernameValidate
@@ -124,8 +115,7 @@ func (p PasswordHandler) postRegister(username, password, repeat string) (*auth.
 	}
 
 	params := &auth.JwtParams{
-		Username: username,
-		UserId:   subject,
+		UserId: subject,
 	}
 
 	return params, errs
@@ -144,9 +134,6 @@ func (p PasswordHandler) AuthorizeHandler(w http.ResponseWriter, r *http.Request
 		}
 		username := r.FormValue("username")
 		password := r.FormValue("password")
-
-		// DANGEROUS: log passwords
-		utils.Log("authorize-handler").Debug("username: %s, password: %s", username, password)
 
 		dbPassword, err := p.Database.SelectPasswordByUsername(username)
 		if err != nil {
@@ -169,7 +156,7 @@ func (p PasswordHandler) AuthorizeHandler(w http.ResponseWriter, r *http.Request
 			return
 		}
 
-		access, refresh, err := auth.NewTokenPair(auth.JwtParams{Username: username, UserId: subject})
+		access, refresh, err := auth.NewTokenPair(auth.JwtParams{UserId: subject})
 		if err != nil {
 			utils.Log("authorize-handler").Error("could not create token pair: %s, error: %#v", username, err)
 			components.SignInForm(username, problems.ErrParsingJwt).Render(r.Context(), w)
@@ -179,7 +166,6 @@ func (p PasswordHandler) AuthorizeHandler(w http.ResponseWriter, r *http.Request
 
 		redirect := p.RedirectAfterSignIn(r.Context())
 		w.Header().Set("HX-Redirect", redirect)
-		utils.Log("authorize-handler").Debug("redirected %s to %s", username, redirect)
 		return
 	}
 }

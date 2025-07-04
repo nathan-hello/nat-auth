@@ -161,7 +161,6 @@ func (vk *VK) scan(pattern []string) chan storage.ScanResult {
 }
 
 func (vk *VK) InsertUser(username string, password []byte, subject string) error {
-	utils.Log("valkey").Debug("InsertUser: username: %s, password: %s, subject: %s", username, password, subject)
 	err := vk.set([]string{"username", username, "subject"}, []byte(subject))
 	if err != nil {
 		utils.Log("valkey").Error("InsertUser: could not set subject: %#v", err)
@@ -172,15 +171,12 @@ func (vk *VK) InsertUser(username string, password []byte, subject string) error
 		utils.Log("valkey").Error("InsertUser: could not set password: %#v", err)
 		return err
 	}
-	utils.Log("valkey").Debug("InsertUser: username: %s, password: %s, subject: %s", username, password, subject)
 	return nil
 }
 
 func (vk *VK) SelectSubjectByUsername(username string) (string, error) {
-	utils.Log("valkey").Debug("SelectSubjectByUsername: username: %s", username)
 	subject, err := vk.get([]string{"username", username, "subject"})
 	if err != nil {
-		utils.Log("valkey").Error("SelectSubjectByUsername: could not get subject: %#v", err)
 		return "", err
 	}
 	if len(subject) == 0 {
@@ -188,17 +184,14 @@ func (vk *VK) SelectSubjectByUsername(username string) (string, error) {
 		return "", errors.New("subject is empty")
 	}
 
-	utils.Log("valkey").Debug("SelectSubjectByUsername: subject: %s", subject)
 	return string(subject), nil
 }
 
 func (vk *VK) SelectPasswordByUsername(username string) ([]byte, error) {
-	utils.Log("valkey").Debug("SelectPasswordByUsername: username: %s", username)
 	password, err := vk.get([]string{"username", username, "password"})
 	if err != nil {
 		utils.Log("valkey").Error("SelectPasswordByUsername: could not get password: %#v", err)
 		return nil, err
 	}
-	utils.Log("valkey").Debug("SelectPasswordByUsername: password: %s", password)
 	return password, nil
 }

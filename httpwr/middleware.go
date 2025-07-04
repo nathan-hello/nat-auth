@@ -20,10 +20,10 @@ func Logger(next http.Handler) http.Handler {
 	})
 }
 
-func InjectClaimsOnValidToken(next http.Handler) http.Handler {
+func VerifyJwtAndInjectUserId(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		access, ok := ValidateJwtOrDelete(w, r)
+		access, _, ok := Validate_Delete_Or_Refresh(w, r)
 		if !ok {
 			next.ServeHTTP(w, r)
 			return

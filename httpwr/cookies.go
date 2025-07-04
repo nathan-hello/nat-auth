@@ -57,25 +57,25 @@ func DeleteCookie(w http.ResponseWriter, name string) {
 	})
 }
 
-func ValidateJwtOrDelete(w http.ResponseWriter, r *http.Request) (string, bool) {
+func Validate_Delete_Or_Refresh(w http.ResponseWriter, r *http.Request) (string, string, bool) {
 	access, err := r.Cookie("access_token")
 	if err != nil {
 		if err == http.ErrNoCookie {
-			return "", false
+			return "", "", false
 		}
 		DeleteCookie(w, "access_token")
 		DeleteCookie(w, "refresh_token")
-		return "", false
+		return "", "", false
 	}
 
 	refresh, err := r.Cookie("refresh_token")
 	if err != nil {
 		if err == http.ErrNoCookie {
-			return "", false
+			return "", "", false
 		}
 		DeleteCookie(w, "access_token")
 		DeleteCookie(w, "refresh_token")
-		return "", false
+		return "", "", false
 	}
 
 	vAccess, vRefresh, err := auth.ValidatePairOrRefresh(access.Value, refresh.Value)
@@ -83,9 +83,13 @@ func ValidateJwtOrDelete(w http.ResponseWriter, r *http.Request) (string, bool) 
 	if err != nil {
 		DeleteCookie(w, "access_token")
 		DeleteCookie(w, "refresh_token")
-		return "", false
+		return "", "", false
 	}
 
-	SetTokenCookies(w, vAccess, vRefresh)
-	return vAccess, true
+	if vAccess != access.Value || vRefresh != refresh.Value {
+		SetTokenCookies(w, vAccess, vRefresh)
+		return vAccess, vRefresh, true
+	}
+
+	return vAccess, vRefresh, true
 }

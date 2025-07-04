@@ -9,24 +9,29 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/nathan-hello/nat-auth/storage"
+	"github.com/nathan-hello/nat-auth/utils"
 )
 
 var US = "\x1f"
 
 type VK struct {
-	Addr string
+	Client net.Conn
 }
 
-func buildSetCommand(key string, val []byte, expiry time.Duration) []byte {
+func buildSetCommand(key string, val []byte, expiry *time.Duration) []byte {
 	args := [][]byte{
 		[]byte("SET"),
 		[]byte(key),
 		val,
-		[]byte("EX"),
 	}
 
-	str := strconv.FormatInt(int64(expiry.Seconds()), 10)
-	args = append(args, []byte(str))
+	if expiry != nil {
+		str := strconv.FormatInt(int64(expiry.Seconds()), 10)
+		args = append(args, []byte("EX"), []byte(str))
+	}
+
 	var cmd []byte
 	cmd = fmt.Appendf(cmd, "*%d\r\n", len(args))
 
@@ -38,20 +43,19 @@ func buildSetCommand(key string, val []byte, expiry time.Duration) []byte {
 	return cmd
 }
 
-func (vk *VK) Set(key []string, val []byte, expiry time.Duration) error {
-	c, err := net.DialTCP(vk.Addr, nil, nil)
-	if err != nil {
-		return err
-	}
-	defer c.Close()
+func (vk *VK) set(key []string, val []byte) error {
+	return vk.setWithExpiry(key, val, 0)
+}
+
+func (vk *VK) setWithExpiry(key []string, val []byte, expiry time.Duration) error {
 	joined := strings.Join(key, US)
 
-	_, err = c.Write(buildSetCommand(joined, val, expiry))
+	_, err := vk.Client.Write(buildSetCommand(joined, val, &expiry))
 	if err != nil {
 		return err
 	}
 	var buf []byte
-	_, err = c.Read(buf)
+	_, err = vk.Client.Read(buf)
 	if err != nil {
 		return err
 	}
@@ -61,20 +65,15 @@ func (vk *VK) Set(key []string, val []byte, expiry time.Duration) error {
 	return nil
 }
 
-func (vk *VK) Get(key []string) ([]byte, error) {
-	c, err := net.DialTCP(vk.Addr, nil, nil)
-	if err != nil {
-		return nil, err
-	}
-	defer c.Close()
+func (vk *VK) get(key []string) ([]byte, error) {
 	joined := strings.Join(key, US)
 
-	_, err = fmt.Fprintf(c, "*2\r\n$3\r\nGET\r\n$%d\r\n%s\r\n", len(joined), joined)
+	_, err := fmt.Fprintf(vk.Client, "*2\r\n$3\r\nGET\r\n$%d\r\n%s\r\n", len(joined), joined)
 	if err != nil {
 		return nil, err
 	}
 	var buf []byte
-	_, err = c.Read(buf)
+	_, err = vk.Client.Read(buf)
 	if err != nil {
 		return nil, err
 	}
@@ -87,20 +86,15 @@ func (vk *VK) Get(key []string) ([]byte, error) {
 	return buf, nil
 }
 
-func (vk *VK) Del(key []string) error {
-	c, err := net.DialTCP(vk.Addr, nil, nil)
-	if err != nil {
-		return err
-	}
-	defer c.Close()
+func (vk *VK) del(key []string) error {
 	joined := strings.Join(key, US)
 
-	_, err = fmt.Fprintf(c, "*2\r\n$3\r\nDEL\r\n$%d\r\n%s\r\n", len(joined), joined)
+	_, err := fmt.Fprintf(vk.Client, "*2\r\n$3\r\nDEL\r\n$%d\r\n%s\r\n", len(joined), joined)
 	if err != nil {
 		return err
 	}
 	var buf []byte
-	_, err = c.Read(buf)
+	_, err = vk.Client.Read(buf)
 	if err != nil {
 		return err
 	}
@@ -113,47 +107,98 @@ func (vk *VK) Del(key []string) error {
 	return nil
 }
 
-func (vk *VK) Scan(pattern []string, ch chan []byte) error {
-	c, err := net.DialTCP(vk.Addr, nil, nil)
-	if err != nil {
-		return err
-	}
-	defer c.Close()
+func (vk *VK) scan(pattern []string) chan storage.ScanResult {
 	joined := strings.Join(pattern, US)
 
+	ch := make(chan storage.ScanResult, 1)
+	defer close(ch)
+
 	cursor := "0"
-	r := bufio.NewReader(c)
+	r := bufio.NewReader(vk.Client)
 
-	for cursor != "0" {
-		cmd := fmt.Sprintf("*4\r\n$4\r\nSCAN\r\n$%d\r\n%s\r\n$5\r\nMATCH\r\n$%d\r\n%s\r\n",
-			len(cursor), cursor, len(joined), joined)
-		_, err = c.Write([]byte(cmd))
-		if err != nil {
-			return err
-		}
-
-		line, err := r.ReadBytes('\n')
-		if err != nil {
-			return err
-		}
-		if !bytes.HasPrefix(line, []byte("*2")) {
-			return fmt.Errorf("unexpected response: %s", line)
-		}
-
-		r.ReadBytes('\n')
-		cursorLine, _ := r.ReadBytes('\n')
-		cursor = strings.TrimSpace(string(cursorLine))
-
-		r.ReadBytes('\n')
-		for {
-			peek, _ := r.Peek(1)
-			if peek[0] != '$' {
-				break
-			}
-			r.ReadBytes('\n')
-			key, _ := r.ReadBytes('\n')
-			ch <- bytes.TrimSpace(key)
-		}
+	iter := storage.ScanResult{}
+	cmd := fmt.Sprintf("*4\r\n$4\r\nSCAN\r\n$%d\r\n%s\r\n$5\r\nMATCH\r\n$%d\r\n%s\r\n",
+		len(cursor), cursor, len(joined), joined)
+	_, err := vk.Client.Write([]byte(cmd))
+	if err != nil {
+		iter.Error = err
+		ch <- iter
+		return ch
 	}
+
+	go func() {
+		for cursor != "0" {
+			line, err := r.ReadBytes('\n')
+			if err != nil {
+				iter.Error = err
+				ch <- iter
+				return
+			}
+			if !bytes.HasPrefix(line, []byte("*2")) {
+				iter.Error = fmt.Errorf("unexpected response: %s", line)
+				ch <- iter
+				return
+			}
+
+			r.ReadBytes('\n')
+			cursorLine, _ := r.ReadBytes('\n')
+			cursor = strings.TrimSpace(string(cursorLine))
+
+			r.ReadBytes('\n')
+			for {
+				peek, _ := r.Peek(1)
+				if peek[0] != '$' {
+					break
+				}
+				r.ReadBytes('\n')
+				key, _ := r.ReadBytes('\n')
+				iter.Data = bytes.TrimSpace(key)
+				ch <- iter
+			}
+		}
+	}()
+	return ch
+}
+
+func (vk *VK) InsertUser(username string, password []byte, subject string) error {
+	utils.Log("valkey").Debug("InsertUser: username: %s, password: %s, subject: %s", username, password, subject)
+	err := vk.set([]string{"username", username, "subject"}, []byte(subject))
+	if err != nil {
+		utils.Log("valkey").Error("InsertUser: could not set subject: %#v", err)
+		return err
+	}
+	err = vk.set([]string{"username", username, "password"}, password)
+	if err != nil {
+		utils.Log("valkey").Error("InsertUser: could not set password: %#v", err)
+		return err
+	}
+	utils.Log("valkey").Debug("InsertUser: username: %s, password: %s, subject: %s", username, password, subject)
 	return nil
+}
+
+func (vk *VK) SelectSubjectByUsername(username string) (string, error) {
+	utils.Log("valkey").Debug("SelectSubjectByUsername: username: %s", username)
+	subject, err := vk.get([]string{"username", username, "subject"})
+	if err != nil {
+		utils.Log("valkey").Error("SelectSubjectByUsername: could not get subject: %#v", err)
+		return "", err
+	}
+	if len(subject) == 0 {
+		utils.Log("valkey").Error("SelectSubjectByUsername: subject is empty")
+		return "", errors.New("subject is empty")
+	}
+
+	utils.Log("valkey").Debug("SelectSubjectByUsername: subject: %s", subject)
+	return string(subject), nil
+}
+
+func (vk *VK) SelectPasswordByUsername(username string) ([]byte, error) {
+	utils.Log("valkey").Debug("SelectPasswordByUsername: username: %s", username)
+	password, err := vk.get([]string{"username", username, "password"})
+	if err != nil {
+		utils.Log("valkey").Error("SelectPasswordByUsername: could not get password: %#v", err)
+		return nil, err
+	}
+	utils.Log("valkey").Debug("SelectPasswordByUsername: password: %s", password)
+	return password, nil
 }

@@ -13,12 +13,8 @@ type ConfigJwt struct {
 
 type Config struct {
 	ConfigJwt
-	EmailRequired    bool
-	UsernameRequired bool
-	PasswordValidate func(string) bool
 }
 
-var initialized = 0
 var localConfig *Config
 
 func InitConfig(c Config) {
@@ -26,8 +22,15 @@ func InitConfig(c Config) {
 }
 
 func LocalConfig() *Config {
-	if localConfig == nil {
-		panic("natauth/lib/config.go could not find Config")
+	if localConfig != nil {
+		return localConfig
 	}
-	return localConfig
+	return &Config{
+		ConfigJwt: ConfigJwt{
+			Secret:        "secret",
+			SecureCookie:  true,
+			AccessExpiry:  1 * time.Hour,
+			RefreshExpiry: 24 * time.Hour,
+		},
+	}
 }

@@ -6,11 +6,19 @@ import (
 	"net/http"
 
 	"github.com/nathan-hello/nat-auth/auth"
+	"github.com/nathan-hello/nat-auth/utils"
 )
 
 type ClaimsContextType struct{}
 
 var ClaimsContextKey = ClaimsContextType{}
+
+func Logger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		utils.Log("http-logger").Debug("request: %s %s", r.Method, r.URL.Path)
+		next.ServeHTTP(w, r)
+	})
+}
 
 func InjectClaimsOnValidToken(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

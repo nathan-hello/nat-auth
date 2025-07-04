@@ -82,12 +82,12 @@ templ password(errorBorder bool) {
 	</div>
 }
 
-templ passwordConfirm(errorBorder bool) {
+templ repeated(errorBorder bool) {
 	<div>
 		<label for="confirm_password" class="block font-medium text-gray-900 dark:text-white">Confirm password</label>
 		<input
 			type="password"
-			name={ "password-confirmation" }
+			name="repeated"
 			class={ fmt.Sprintf("bg-gray-50 border text-gray-900  rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 %v", borderColor(errorBorder)) }
 			placeholder="•••••••••"
 			required
@@ -109,25 +109,24 @@ templ authRedirect(s string, link string) {
 	<p class="float-left my-2 mx-auto text-blue-950 w-min whitespace-nowrap mt-5  underline"><a href={ templ.URL(link) }>{ s }</a></p>
 }
 
-templ renderErrs(errors []problems.AuthError) {
-	if len(errors) > 0 {
+templ renderErrs(errors problems.BitError) {
+	if msgs := errors.RenderMessages(); len(msgs) > 0 {
 		<div id="errors-container">
-			for _, v := range errors {
-				@AlertBox(v.Message)
+			for _, v := range msgs {
+				@AlertBox(v)
 			}
 		</div>
 	}
 }
 
-templ SignUpForm(previousUsername string, errors []problems.AuthError) {
+templ SignUpForm(previousUsername string, errors problems.BitError) {
 	<form class="text-2xl gap-y-4 flex flex-col max-w-screen-md mx-auto" hx-post="/auth/signup" hx-target="this">
 		<p class="font-semibold text-gray-100 text-center text-2xl mx-auto  border-b border-white w-min whitespace-nowrap px-20 pb-2 mb-6">
 			Create an account
 		</p>
-		// @email(len(problems.GetErrorByCategory(errors, "email")) > 0, previousUsername)
-		@username(len(problems.GetErrorByCategory(errors, "username")) > 0, previousUsername)
-		@password(len(problems.GetErrorByCategory(errors, "password")) > 0)
-		@passwordConfirm(len(problems.GetErrorByCategory(errors, "password_confirmation")) > 0)
+		@username(len(errors.GetErrorsByCategory("username")) > 0, previousUsername)
+		@password(len(errors.GetErrorsByCategory("password")) > 0)
+		@repeated(len(errors.GetErrorsByCategory("repeated")) > 0)
 		@submitFormButton()
 		@authRedirect("Already have an account?", "/auth/signin")
 		<div class="py-2"></div>
@@ -135,19 +134,21 @@ templ SignUpForm(previousUsername string, errors []problems.AuthError) {
 	</form>
 }
 
-templ SignUp(username string, errors []problems.AuthError) {
+templ SignUp(username string, errors problems.BitError) {
+	@layout(LayoutParams{TabTitle: "Sign Up", NavTitle: "Bear Auth"}, ClientState{Username: ""}) {
 		<div class="pt-8">
 			@SignUpForm(username, errors)
 		</div>
+	}
 }
 
-templ SignInForm(username string, errors []problems.AuthError) {
+templ SignInForm(username string, errors problems.BitError) {
 	<form class="text-2xl gayp-y-4 flex flex-col max-w-screen-md mx-auto" hx-post="/auth/signin" hx-target="this">
 		<p class="font-semibold text-gray-100 text-center text-2xl mx-auto  border-b border-white w-min whitespace-nowrap px-20 pb-2 mb-6">
 			Sign In
 		</p>
-		@user(len(problems.GetErrorByCategory(errors, "username"))>1, username)
-		@password(len(problems.GetErrorByCategory(errors, "password"))>1)
+		@user(len(errors.GetErrorsByCategory("username"))>1, username)
+		@password(len(errors.GetErrorsByCategory("password"))>1)
 		@submitFormButton()
 		@authRedirect("Need an account?", "/auth/signup")
 		<div class="py-2"></div>
@@ -155,10 +156,12 @@ templ SignInForm(username string, errors []problems.AuthError) {
 	</form>
 }
 
-templ SignIn(username string, errors []problems.AuthError) {
+templ SignIn(username string, errors problems.BitError) {
+	@layout(LayoutParams{TabTitle: "Sign In", NavTitle: "Bear Auth"}, ClientState{Username: ""}) {
 		<div class="pt-8">
 			@SignInForm(username, errors)
 		</div>
+	}
 }
 
 templ AlertBox(s string) {

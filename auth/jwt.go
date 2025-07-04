@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"github.com/nathan-hello/nat-auth/utils"
 )
 
@@ -22,10 +21,15 @@ type JwtParams struct {
 	Family   string
 }
 
-func NewTokenPair(j *JwtParams) (string, string, error) {
+func NewTokenPair(j JwtParams) (string, string, error) {
 	if j.Family == "" {
-		j.Family = uuid.New().String()
+		fam, err := utils.NewUUID()
+		if err != nil {
+			return "", "", err
+		}
+		j.Family = fam
 	}
+
 	ac := jwt.MapClaims{
 		"exp":      time.Now().Add(utils.LocalConfig().AccessExpiry).Unix(),
 		"iat":      time.Now().Unix(),
@@ -107,7 +111,6 @@ func ValidateJwtFromString(t string) error {
 	if err != nil {
 		return utils.ErrParsingJwt
 	}
-
 	if !token.Valid {
 		return utils.ErrInvalidToken
 	}
@@ -120,7 +123,7 @@ func NewPairFromRefresh(r string) (string, string, error) {
 		return "", "", err
 	}
 
-	access, refresh, err := NewTokenPair(&JwtParams{UserId: claims.UserId, Username: claims.Username})
+	access, refresh, err := NewTokenPair(JwtParams{UserId: claims.UserId, Username: claims.Username})
 	if err != nil {
 		return "", "", err
 	}

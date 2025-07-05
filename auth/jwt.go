@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/nathan-hello/nat-auth/auth/problems"
 	"github.com/nathan-hello/nat-auth/utils"
 )
 
@@ -62,31 +61,31 @@ func NewTokenPair(j JwtParams) (string, string, error) {
 	return as, rs, nil
 }
 
-func ParseToken(t string) (*CustomClaims, error) {
+func ParseToken(t string) (CustomClaims, error) {
+	claims := CustomClaims{}
 	token, err := jwt.ParseWithClaims(
 		t,
-		&CustomClaims{},
+		&claims,
 		func(token *jwt.Token) (any, error) {
 			ok := token.Method.Alg() == "HS256"
 			if !ok {
 				// this error will not show unless logged because
 				// the jwt library wraps this error
-				return nil, problems.ErrJwtMethodBad
+				return nil, ErrJwtMethodBad
 			}
 			return []byte(utils.LocalConfig().Secret), nil
 		})
 
 	if err != nil {
-		return nil, err
+		return claims, err
 	}
 
 	if !token.Valid {
-		return nil, err
+		return claims, ErrJwtInvalidInDb
 	}
 
-	claims, ok := token.Claims.(*CustomClaims)
-	if !ok {
-		return nil, problems.ErrParsingJwt
+	if claims.UserId == "" {
+		return claims, ErrParsingJwt
 	}
 
 	return claims, nil
@@ -104,10 +103,9 @@ func NewPairFromRefresh(r string) (string, string, error) {
 		return "", "", err
 	}
 	return access, refresh, nil
-
 }
 
-func ParseOrRefreshToken(a string, r string) (string, string, error) {
+func ValidateOrRefreshToken(a string, r string) (string, string, error) {
 
 	_, err := ParseToken(a)
 	// if access is good, let's just refresh
@@ -119,15 +117,14 @@ func ParseOrRefreshToken(a string, r string) (string, string, error) {
 		}
 		// if access is good but refresh is bad, we don't refresh based off
 		// of access tokens, so it's better to just error and reauth
-		return "", "", problems.ErrJwtGoodAccBadRef
+		return "", "", ErrJwtGoodAccBadRef
 	}
 
 	// even if access was bad, maybe the refresh is good
 	_, err = ParseToken(r)
 	if err != nil {
-		if err == problems.ErrJwtInvalidInDb {
-			utils.Log("jwt").Error("ValidatePairOrRefresh: jwt invalid in db, invalidating family")
-			return "", "", problems.ErrJwtInvalidInDb
+		if err == ErrJwtInvalidInDb {
+			return "", "", ErrJwtInvalidInDb
 		}
 		return "", "", err
 	}

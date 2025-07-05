@@ -2,16 +2,12 @@ package httpwr
 
 import (
 	"context"
-	"log"
 	"net/http"
 
 	"github.com/nathan-hello/nat-auth/auth"
 	"github.com/nathan-hello/nat-auth/utils"
 )
 
-type ClaimsContextType struct{}
-
-var ClaimsContextKey = ClaimsContextType{}
 
 func Logger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -22,7 +18,7 @@ func Logger(next http.Handler) http.Handler {
 
 func VerifyJwtAndInjectUserId(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		access, _, ok := ParseRefreshOrDeleteToken(w, r)
+		access, _, ok := ValidateRefreshOrDeleteTokenFromCookies(w, r)
 		if !ok {
 			next.ServeHTTP(w, r)
 			return
@@ -34,12 +30,7 @@ func VerifyJwtAndInjectUserId(next http.Handler) http.Handler {
 			return
 		}
 
-		if claims == nil {
-			log.Println("claims was nil")
-			next.ServeHTTP(w, r)
-			return
-		}
-		wrapReq := r.WithContext(context.WithValue(r.Context(), ClaimsContextKey, claims))
+		wrapReq := r.WithContext(context.WithValue(r.Context(), auth.UserIdContextKey, claims.UserId))
 		next.ServeHTTP(w, wrapReq)
 	})
 }

@@ -35,18 +35,14 @@ func SetTokenCookies(w http.ResponseWriter, a string, r string) {
 	http.SetCookie(w, refresh)
 }
 
-func GetJwtsFromCookie(r *http.Request) (string, string, error) {
-	access, err := r.Cookie("access_token")
-	if err != nil {
-		return "", "", err
-	}
-
-	refresh, err := r.Cookie("refresh_token")
-	if err != nil {
-		return "", "", err
-	}
-
-	return access.Value, refresh.Value, nil
+// Error is ignored because the only errors is ErrNoCookie.
+// Which isn't an error state for us because refresh can exist
+// longer than access. If both end up being empty strings, that's
+// fine because the rest of the jwt stuff will catch it.
+func GetJwtsFromCookie(r *http.Request) (string, string) {
+	access, _ := r.Cookie("access_token")
+	refresh, _ := r.Cookie("refresh_token")
+	return access.Value, refresh.Value
 }
 
 func DeleteCookie(w http.ResponseWriter, name string) {
@@ -61,28 +57,10 @@ func DeleteCookie(w http.ResponseWriter, name string) {
 	})
 }
 
-func ParseRefreshOrDeleteToken(w http.ResponseWriter, r *http.Request) (string, string, bool) {
-	access, err := r.Cookie("access_token")
-	if err != nil {
-		if err == http.ErrNoCookie {
-			return "", "", false
-		}
-		DeleteCookie(w, "access_token")
-		DeleteCookie(w, "refresh_token")
-		return "", "", false
-	}
+func ValidateRefreshOrDeleteTokenFromCookies(w http.ResponseWriter, r *http.Request) (string, string, bool) {
+	access, refresh := GetJwtsFromCookie(r)
 
-	refresh, err := r.Cookie("refresh_token")
-	if err != nil {
-		if err == http.ErrNoCookie {
-			return "", "", false
-		}
-		DeleteCookie(w, "access_token")
-		DeleteCookie(w, "refresh_token")
-		return "", "", false
-	}
-
-	vAccess, vRefresh, err := auth.ParseOrRefreshToken(access.Value, refresh.Value)
+	vAccess, vRefresh, err := auth.ValidateOrRefreshToken(access, refresh)
 
 	if err != nil {
 		DeleteCookie(w, "access_token")
@@ -90,7 +68,7 @@ func ParseRefreshOrDeleteToken(w http.ResponseWriter, r *http.Request) (string, 
 		return "", "", false
 	}
 
-	if vAccess != access.Value || vRefresh != refresh.Value {
+	if vAccess != access || vRefresh != refresh {
 		SetTokenCookies(w, vAccess, vRefresh)
 		return vAccess, vRefresh, true
 	}

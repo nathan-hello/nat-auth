@@ -7,9 +7,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/nathan-hello/nat-auth/auth/providers"
+	"github.com/nathan-hello/nat-auth/auth"
+	"github.com/nathan-hello/nat-auth/auth/providers/password"
 	"github.com/nathan-hello/nat-auth/httpwr"
 	"github.com/nathan-hello/nat-auth/storage/valkey"
+	"github.com/nathan-hello/nat-auth/test/app/components"
 	"github.com/nathan-hello/nat-auth/utils"
 )
 
@@ -23,7 +25,7 @@ func main() {
 		RefreshExpiry: 24 * time.Hour,
 	})
 
-	p := providers.PasswordHandler{
+	p := password.PasswordHandler{
 		UsernameValidate: nil,
 		Database:         &store,
 		RedirectAfterSignIn: func(r *http.Request) string {
@@ -32,11 +34,13 @@ func main() {
 		RedirectAfterSignUp: func(r *http.Request) string {
 			return "/"
 		},
-		Ui: providers.PasswordUiDefault,
+		Ui: password.PasswordUiDefault,
 	}
 
-	http.Handle("/auth/signup", httpwr.Logger(http.HandlerFunc(p.RegisterHandler)))
-	http.Handle("/auth/signin", httpwr.Logger(http.HandlerFunc(p.AuthorizeHandler)))
+	http.Handle("/", httpwr.VerifyJwtAndInjectUserId(httpwr.Logger(http.HandlerFunc(HomeHandler))))
+	http.Handle("/auth/signup", httpwr.VerifyJwtAndInjectUserId(httpwr.Logger(http.HandlerFunc(p.SignUpHandler))))
+	http.Handle("/auth/signin", httpwr.VerifyJwtAndInjectUserId(httpwr.Logger(http.HandlerFunc(p.SignInHandler))))
+	http.Handle("/protected", httpwr.VerifyJwtAndInjectUserId(httpwr.Logger(http.HandlerFunc(ProtectedHandler))))
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -53,4 +57,20 @@ func main() {
 	if err := http.ListenAndServe(":3000", nil); err != nil {
 		utils.Log("main").Error("Server failed: %v", err)
 	}
+}
+
+func ProtectedHandler(w http.ResponseWriter, r *http.Request) {
+	userId := auth.GetUserId(r)
+	if userId == "" {
+		utils.Log("protected-handler").Error("User ID not found in request context")
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
+		return
+	}
+	components.Protected(userId).Render(r.Context(), w)
+}
+
+// HomeHandler handles the home route
+func HomeHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	components.Root().Render(r.Context(), w)
 }

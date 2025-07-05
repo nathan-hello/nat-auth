@@ -1,4 +1,4 @@
-package problems
+package auth
 
 import (
 	"fmt"
@@ -8,42 +8,42 @@ type BitError uint64
 
 const (
 	// User-facing errors (0-31)
-	ErrUsernameTooShort      BitError = 1 << 0 // 1
-	ErrUsernameTooLong       BitError = 1 << 1 // 2
-	ErrUsernameInvalidFormat BitError = 1 << 2 // 4
-	ErrUsernameTaken         BitError = 1 << 3 // 8
-	ErrPasswordTooShort      BitError = 1 << 4 // 16
-	ErrPasswordTooLong       BitError = 1 << 5 // 32
-	ErrPassNoMatch           BitError = 1 << 6 // 64
-	ErrBadLogin              BitError = 1 << 7 // 128
-	ErrInternalServer        BitError = 1 << 8 // 256
+	ErrUsernameTooShort      BitError = 1 << 0
+	ErrUsernameTooLong       BitError = 1 << 1
+	ErrUsernameInvalidFormat BitError = 1 << 2
+	ErrUsernameTaken         BitError = 1 << 3
+	ErrPasswordTooShort      BitError = 1 << 4
+	ErrPasswordTooLong       BitError = 1 << 5
+	ErrPassNoMatch           BitError = 1 << 6
+	ErrBadLogin              BitError = 1 << 7
+	ErrInternalServer        BitError = 1 << 8
 
 	// System errors (32-63)
-	ErrHashPassword          BitError = 1 << 32 // 65536
-	ErrDbInsertUser          BitError = 1 << 33 // 131072
-	ErrDbSelectAfterInsert   BitError = 1 << 34 // 262144
-	ErrParsingJwt            BitError = 1 << 35 // 524288
-	ErrInvalidToken          BitError = 1 << 36 // 1048576
-	ErrJwtNotInHeader        BitError = 1 << 37 // 2097152
-	ErrJwtNotInDb            BitError = 1 << 38 // 4194304
-	ErrJwtMethodBad          BitError = 1 << 39 // 8388608
-	ErrJwtInvalidInDb        BitError = 1 << 40 // 16777216
-	ErrDbConnection          BitError = 1 << 41 // 33554432
-	ErrDbInsertToken         BitError = 1 << 42 // 67108864
-	ErrDbSelectUserFromToken BitError = 1 << 43 // 134217728
-	ErrJwtGoodAccBadRef      BitError = 1 << 44 // 268435456
-	ErrDbInsertUsersToken    BitError = 1 << 45 // 536870912
-	ErrDbSelectUserFromJwt   BitError = 1 << 46 // 1073741824
-	ErrDbUpdateTokensInvalid BitError = 1 << 47 // 2147483648
-	ErrDbSelectUserSubject   BitError = 1 << 48 // 4294967296
-	ErrUuidFailed            BitError = 1 << 49 // 8589934592
+	ErrHashPassword          BitError = 1 << 32
+	ErrDbInsertUser          BitError = 1 << 33
+	ErrDbSelectAfterInsert   BitError = 1 << 34
+	ErrParsingJwt            BitError = 1 << 35
+	ErrInvalidToken          BitError = 1 << 36
+	ErrJwtNotInHeader        BitError = 1 << 37
+	ErrJwtNotInDb            BitError = 1 << 38
+	ErrJwtMethodBad          BitError = 1 << 39
+	ErrJwtInvalidInDb        BitError = 1 << 40
+	ErrDbConnection          BitError = 1 << 41
+	ErrDbInsertToken         BitError = 1 << 42
+	ErrDbSelectUserFromToken BitError = 1 << 43
+	ErrJwtGoodAccBadRef      BitError = 1 << 44
+	ErrDbInsertUsersToken    BitError = 1 << 45
+	ErrDbSelectUserFromJwt   BitError = 1 << 46
+	ErrDbUpdateTokensInvalid BitError = 1 << 47
+	ErrDbSelectUserSubject   BitError = 1 << 48
+	ErrUuidFailed            BitError = 1 << 49
 )
 
 var messages = map[BitError]string{
 	ErrUsernameTooShort:      "invalid username: too short",
 	ErrUsernameTooLong:       "invalid username: too long",
 	ErrUsernameInvalidFormat: "invalid username: invalid format",
-	ErrUsernameTaken:         "username is already taken",
+	ErrUsernameTaken:         "invalid username: already taken",
 	ErrPasswordTooShort:      "invalid password: too short",
 	ErrPasswordTooLong:       "invalid password: too long",
 	ErrPassNoMatch:           "invalid password: does not match",
@@ -125,6 +125,7 @@ func (e BitError) GetErrors() []BitError {
 }
 
 // RenderUserMessages returns all error messages as a slice
+// If system error, then give generic message
 func (e BitError) RenderUserMessages() []string {
 	var renderedMessages []string
 	for err := range messages {
@@ -140,7 +141,7 @@ func (e BitError) RenderUserMessages() []string {
 	return renderedMessages
 }
 
-func (e BitError) RenderMessages() []string {
+func (e BitError) RenderFullMessages() []string {
 	var renderedMessages []string
 	for err := range messages {
 		if e.Has(err) {
@@ -175,7 +176,7 @@ func (e BitError) Error() string {
 		return ""
 	}
 
-	messages := e.RenderMessages()
+	messages := e.RenderFullMessages()
 	if len(messages) == 1 {
 		return messages[0]
 	}

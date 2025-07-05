@@ -1,7 +1,7 @@
 package components
 
 import "fmt"
-import "github.com/nathan-hello/nat-auth/auth/problems"
+import "github.com/nathan-hello/nat-auth/auth"
 import "unicode"
 
 func borderColor(t bool) string {
@@ -109,8 +109,8 @@ templ authRedirect(s string, link string) {
 	<p class="float-left my-2 mx-auto text-blue-950 w-min whitespace-nowrap mt-5  underline"><a href={ templ.URL(link) }>{ s }</a></p>
 }
 
-templ renderErrs(errors problems.BitError) {
-	if msgs := errors.RenderMessages(); len(msgs) > 0 {
+templ renderErrs(errors auth.BitError) {
+	if msgs := errors.RenderUserMessages(); len(msgs) > 0 {
 		<div id="errors-container">
 			for _, v := range msgs {
 				@AlertBox(v)
@@ -119,7 +119,7 @@ templ renderErrs(errors problems.BitError) {
 	}
 }
 
-templ SignUpForm(previousUsername string, errors problems.BitError) {
+templ SignUpForm(previousUsername string, errors auth.BitError) {
 	<form class="text-2xl gap-y-4 flex flex-col max-w-screen-md mx-auto" hx-post="/auth/signup" hx-target="this">
 		<p class="font-semibold text-gray-100 text-center text-2xl mx-auto  border-b border-white w-min whitespace-nowrap px-20 pb-2 mb-6">
 			Create an account
@@ -134,7 +134,7 @@ templ SignUpForm(previousUsername string, errors problems.BitError) {
 	</form>
 }
 
-templ SignUp(username string, errors problems.BitError) {
+templ SignUp(username string, errors auth.BitError) {
 	@layout(LayoutParams{TabTitle: "Sign Up", NavTitle: "Bear Auth"}, ClientState{Username: ""}) {
 		<div class="pt-8">
 			@SignUpForm(username, errors)
@@ -142,7 +142,7 @@ templ SignUp(username string, errors problems.BitError) {
 	}
 }
 
-templ SignInForm(username string, errors problems.BitError) {
+templ SignInForm(username string, errors auth.BitError) {
 	<form class="text-2xl gayp-y-4 flex flex-col max-w-screen-md mx-auto" hx-post="/auth/signin" hx-target="this">
 		<p class="font-semibold text-gray-100 text-center text-2xl mx-auto  border-b border-white w-min whitespace-nowrap px-20 pb-2 mb-6">
 			Sign In
@@ -156,7 +156,7 @@ templ SignInForm(username string, errors problems.BitError) {
 	</form>
 }
 
-templ SignIn(username string, errors problems.BitError) {
+templ SignIn(username string, errors auth.BitError) {
 	@layout(LayoutParams{TabTitle: "Sign In", NavTitle: "Bear Auth"}, ClientState{Username: ""}) {
 		<div class="pt-8">
 			@SignInForm(username, errors)

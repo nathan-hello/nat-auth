@@ -9,7 +9,14 @@ type UserIdContextType struct{}
 var UserIdContextKey = UserIdContextType{}
 
 func GetUserId(r *http.Request) string {
-	userid := r.Context().Value(UserIdContextKey).(string)
-	return userid
-}
+	userId := r.Context().Value(UserIdContextKey)
+	if userId == nil {
+		return ""
+	}
+	userStr, ok := userId.(string)
+	if !ok {
+		return ""
+	}
 
+	return userStr
+}

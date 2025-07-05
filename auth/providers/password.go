@@ -1,7 +1,7 @@
 package providers
 
 import (
-	"context"
+	"bytes"
 	"net/http"
 	"regexp"
 
@@ -14,16 +14,52 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type FormState struct {
+	Username string
+	Problems problems.BitError
+}
+
+type PasswordUi struct {
+	HtmlPageSignUp func(*http.Request) []byte
+	HtmlFormSignUp func(*http.Request, FormState) []byte
+	HtmlPageSignIn func(*http.Request) []byte
+	HtmlFormSignIn func(*http.Request, FormState) []byte
+}
+
+var PasswordUiDefault = PasswordUi{
+	HtmlPageSignUp: func(r *http.Request) []byte {
+		var buf bytes.Buffer
+		components.SignUp("", 0).Render(r.Context(), &buf)
+		return buf.Bytes()
+	},
+	HtmlFormSignUp: func(r *http.Request, state FormState) []byte {
+		var buf bytes.Buffer
+		components.SignUpForm(state.Username, state.Problems).Render(r.Context(), &buf)
+		return buf.Bytes()
+	},
+	HtmlPageSignIn: func(r *http.Request) []byte {
+		var buf bytes.Buffer
+		components.SignIn("", 0).Render(r.Context(), &buf)
+		return buf.Bytes()
+	},
+	HtmlFormSignIn: func(r *http.Request, state FormState) []byte {
+		var buf bytes.Buffer
+		components.SignInForm(state.Username, state.Problems).Render(r.Context(), &buf)
+		return buf.Bytes()
+	},
+}
+
 type PasswordHandler struct {
 	UsernameValidate    func(s string) problems.BitError
-	Database            storage.DB
-	RedirectAfterSignUp func(ctx context.Context) string
-	RedirectAfterSignIn func(ctx context.Context) string
+	Database            storage.DbPassword
+	RedirectAfterSignUp func(*http.Request) string
+	RedirectAfterSignIn func(*http.Request) string
+	Ui                  PasswordUi
 }
 
 func (p PasswordHandler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		components.SignUp("", 0).Render(r.Context(), w)
+		w.Write(p.Ui.HtmlPageSignUp(r))
 		return
 	}
 
@@ -41,24 +77,24 @@ func (p PasswordHandler) RegisterHandler(w http.ResponseWriter, r *http.Request)
 		params, errs := p.postRegister(username, password, repeated) // Work gets done here
 		if errs.Count() > 0 {
 			utils.Log("register-handler").Error("postRegister failed: %#v", errs.RenderMessages())
-			components.SignUpForm(username, errs).Render(r.Context(), w)
+			w.Write(p.Ui.HtmlFormSignUp(r, FormState{Username: username, Problems: errs}))
 			return
 		}
 		if params == nil {
 			utils.Log("register-handler").Error("params is nil, this should never happen")
-			components.SignUpForm(username, problems.ErrInternalServer).Render(r.Context(), w)
+			w.Write(p.Ui.HtmlFormSignUp(r, FormState{Username: username, Problems: problems.ErrInternalServer}))
 			return
 		}
 
 		access, refresh, err := auth.NewTokenPair(*params)
 		if err != nil {
 			utils.Log("register-handler").Error("could not create token pair: %#v", err)
-			components.SignUpForm(username, problems.ErrParsingJwt).Render(r.Context(), w)
+			w.Write(p.Ui.HtmlFormSignUp(r, FormState{Username: username, Problems: problems.ErrParsingJwt}))
 			return
 		}
 		httpwr.SetTokenCookies(w, access, refresh)
 
-		redirect := p.RedirectAfterSignUp(r.Context())
+		redirect := p.RedirectAfterSignUp(r)
 		w.Header().Set("HX-Redirect", redirect)
 		return
 	}
@@ -118,13 +154,13 @@ func (p PasswordHandler) postRegister(username, password, repeat string) (*auth.
 
 func (p PasswordHandler) AuthorizeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		components.SignIn("", 0).Render(r.Context(), w)
+		w.Write(p.Ui.HtmlPageSignIn(r))
 		return
 	}
 
 	if r.Method == "POST" {
 		if err := r.ParseForm(); err != nil {
-			components.SignInForm("", problems.ErrDbConnection).Render(r.Context(), w)
+			w.Write(p.Ui.HtmlFormSignIn(r, FormState{Problems: problems.ErrDbConnection}))
 			return
 		}
 		username := r.FormValue("username")
@@ -133,33 +169,33 @@ func (p PasswordHandler) AuthorizeHandler(w http.ResponseWriter, r *http.Request
 		dbPassword, err := p.Database.SelectPasswordByUsername(username)
 		if err != nil {
 			utils.Log("authorize-handler").Error("could not select password by username: %s, error: %#v", username, err)
-			components.SignIn(username, problems.ErrBadLogin)
+			w.Write(p.Ui.HtmlFormSignIn(r, FormState{Username: username, Problems: problems.ErrBadLogin}))
 			return
 		}
 
 		err = bcrypt.CompareHashAndPassword([]byte(dbPassword), []byte(password))
 		if err != nil {
 			utils.Log("authorize-handler").Error("hash and password do not match: %s, error: %#v", username, err)
-			components.SignIn(username, problems.ErrBadLogin)
+			w.Write(p.Ui.HtmlFormSignIn(r, FormState{Username: username, Problems: problems.ErrBadLogin}))
 			return
 		}
 
 		subject, err := p.Database.SelectSubjectByUsername(username)
 		if err != nil {
 			utils.Log("authorize-handler").Error("could not select subject by username: %s, error: %#v", username, err)
-			components.SignIn(username, problems.ErrDbSelectUserSubject)
+			w.Write(p.Ui.HtmlFormSignIn(r, FormState{Username: username, Problems: problems.ErrDbSelectUserSubject}))
 			return
 		}
 
 		access, refresh, err := auth.NewTokenPair(auth.JwtParams{UserId: subject})
 		if err != nil {
 			utils.Log("authorize-handler").Error("could not create token pair: %s, error: %#v", username, err)
-			components.SignInForm(username, problems.ErrParsingJwt).Render(r.Context(), w)
+			w.Write(p.Ui.HtmlFormSignIn(r, FormState{Username: username, Problems: problems.ErrParsingJwt}))
 			return
 		}
 		httpwr.SetTokenCookies(w, access, refresh)
 
-		redirect := p.RedirectAfterSignIn(r.Context())
+		redirect := p.RedirectAfterSignIn(r)
 		w.Header().Set("HX-Redirect", redirect)
 		return
 	}

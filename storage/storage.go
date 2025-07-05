@@ -1,6 +1,6 @@
 package storage
 
-type DB interface {
+type DbPassword interface {
 	InitDb(addr string)
 	InsertUser(username string, password string, subject string) error
 	SelectSubjectByUsername(username string) (string, error)

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"net/http"
 	"os"
 	"os/signal"
@@ -10,11 +9,13 @@ import (
 
 	"github.com/nathan-hello/nat-auth/auth/providers"
 	"github.com/nathan-hello/nat-auth/httpwr"
-	"github.com/nathan-hello/nat-auth/storage/valkey"
+	kv "github.com/nathan-hello/nat-auth/storage/valkey"
 	"github.com/nathan-hello/nat-auth/utils"
+	"github.com/valkey-io/valkey-go"
 )
 
 func main() {
+<<<<<<< HEAD
 	store := valkey.VK{}
 	store.InitDb("127.0.0.1:6379")
 	utils.InitJwt(utils.ConfigJwt{
@@ -23,16 +24,28 @@ func main() {
 		AccessExpiry:  1 * time.Hour,
 		RefreshExpiry: 24 * time.Hour,
 	})
+||||||| 6095a43
+	store := valkey.VK{}
+	store.Init("127.0.0.1:6379")
+=======
+
+	client, err := valkey.NewClient(valkey.ClientOption{InitAddress: []string{"127.0.0.1:6379"}})
+	if err != nil {
+		panic(err)
+	}
+	store := kv.VK{Client: client}
+>>>>>>> refs/remotes/origin/main
 
 	p := providers.PasswordHandler{
 		UsernameValidate: nil,
 		Database:         &store,
-		RedirectAfterSignIn: func(ctx context.Context) string {
+		RedirectAfterSignIn: func(r *http.Request) string {
 			return "/"
 		},
-		RedirectAfterSignUp: func(ctx context.Context) string {
+		RedirectAfterSignUp: func(r *http.Request) string {
 			return "/"
 		},
+		Ui: providers.PasswordUiDefault,
 	}
 
 	http.Handle("/auth/signup", httpwr.Logger(http.HandlerFunc(p.RegisterHandler)))
@@ -44,6 +57,8 @@ func main() {
 	go func() {
 		<-sigChan
 		utils.Log("main").Info("Received shutdown signal, closing connections...")
+		store.Client.Close()
+		utils.Log("main").Info("Valkey client closed")
 		os.Exit(0)
 	}()
 

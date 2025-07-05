@@ -10,7 +10,7 @@ import (
 
 func SetTokenCookies(w http.ResponseWriter, a string, r string) {
 
-	http.SetCookie(w, &http.Cookie{
+	access := &http.Cookie{
 		Name:     "access_token",
 		Value:    a,
 		Expires:  time.Now().Add(utils.LocalConfig().AccessExpiry),
@@ -18,9 +18,11 @@ func SetTokenCookies(w http.ResponseWriter, a string, r string) {
 		HttpOnly: utils.LocalConfig().SecureCookie,
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
-	})
+	}
 
-	http.SetCookie(w, &http.Cookie{
+	http.SetCookie(w, access)
+
+	refresh := &http.Cookie{
 		Name:     "refresh_token",
 		Value:    r,
 		Expires:  time.Now().Add(utils.LocalConfig().RefreshExpiry),
@@ -28,7 +30,9 @@ func SetTokenCookies(w http.ResponseWriter, a string, r string) {
 		HttpOnly: utils.LocalConfig().SecureCookie,
 		Path:     "/",
 		SameSite: http.SameSiteStrictMode,
-	})
+	}
+
+	http.SetCookie(w, refresh)
 }
 
 func GetJwtsFromCookie(r *http.Request) (string, string, error) {
@@ -57,7 +61,7 @@ func DeleteCookie(w http.ResponseWriter, name string) {
 	})
 }
 
-func Validate_Delete_Or_Refresh(w http.ResponseWriter, r *http.Request) (string, string, bool) {
+func ParseRefreshOrDeleteToken(w http.ResponseWriter, r *http.Request) (string, string, bool) {
 	access, err := r.Cookie("access_token")
 	if err != nil {
 		if err == http.ErrNoCookie {
@@ -78,7 +82,7 @@ func Validate_Delete_Or_Refresh(w http.ResponseWriter, r *http.Request) (string,
 		return "", "", false
 	}
 
-	vAccess, vRefresh, err := auth.ValidatePairOrRefresh(access.Value, refresh.Value)
+	vAccess, vRefresh, err := auth.ParseOrRefreshToken(access.Value, refresh.Value)
 
 	if err != nil {
 		DeleteCookie(w, "access_token")

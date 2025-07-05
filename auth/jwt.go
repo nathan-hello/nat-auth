@@ -93,27 +93,6 @@ func ParseToken(t string) (*CustomClaims, error) {
 
 }
 
-func ValidateJwtFromString(t string) error {
-	token, err := jwt.Parse(
-		t, func(token *jwt.Token) (any, error) {
-			ok := token.Method.Alg() == "HS256"
-			if !ok {
-				// this error will not show unless logged because
-				// the jwt library wraps this error
-				return nil, problems.ErrJwtMethodBad
-			}
-			return []byte(utils.LocalConfig().Secret), nil
-		})
-
-	if err != nil {
-		return problems.ErrParsingJwt
-	}
-	if !token.Valid {
-		return problems.ErrInvalidToken
-	}
-	return nil
-}
-
 func NewPairFromRefresh(r string) (string, string, error) {
 	claims, err := ParseToken(r)
 	if err != nil {
@@ -128,12 +107,12 @@ func NewPairFromRefresh(r string) (string, string, error) {
 
 }
 
-func ValidatePairOrRefresh(a string, r string) (string, string, error) {
+func ParseOrRefreshToken(a string, r string) (string, string, error) {
 
-	err := ValidateJwtFromString(a)
+	_, err := ParseToken(a)
 	// if access is good, let's just refresh
 	if err == nil {
-		err = ValidateJwtFromString(r)
+		_, err = ParseToken(r)
 		// if refresh and access are good, return to sender
 		if err == nil {
 			return a, r, nil
@@ -144,7 +123,7 @@ func ValidatePairOrRefresh(a string, r string) (string, string, error) {
 	}
 
 	// even if access was bad, maybe the refresh is good
-	err = ValidateJwtFromString(r)
+	_, err = ParseToken(r)
 	if err != nil {
 		if err == problems.ErrJwtInvalidInDb {
 			utils.Log("jwt").Error("ValidatePairOrRefresh: jwt invalid in db, invalidating family")

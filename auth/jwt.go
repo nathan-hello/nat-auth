@@ -19,11 +19,11 @@ type JwtParams struct {
 	Family string `json:"family"`
 }
 
-func NewTokenPair(j JwtParams) (string, string, error) {
+func NewTokenPair(j JwtParams) (string, string, string, error) {
 	if j.Family == "" {
 		fam, err := utils.NewUUID()
 		if err != nil {
-			return "", "", err
+			return "", "", "", err
 		}
 		j.Family = fam
 	}
@@ -41,7 +41,7 @@ func NewTokenPair(j JwtParams) (string, string, error) {
 
 	as, err := access.SignedString([]byte(utils.LocalConfig().Secret))
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	rc := jwt.MapClaims{
@@ -56,9 +56,9 @@ func NewTokenPair(j JwtParams) (string, string, error) {
 	refresh := jwt.NewWithClaims(jwt.SigningMethodHS256, &rc)
 	rs, err := refresh.SignedString([]byte(utils.LocalConfig().Secret))
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-	return as, rs, nil
+	return as, rs, j.Family, nil
 }
 
 func ParseToken(t string) (CustomClaims, error) {
@@ -81,28 +81,15 @@ func ParseToken(t string) (CustomClaims, error) {
 	}
 
 	if !token.Valid {
-		return claims, ErrJwtInvalidInDb
+		return claims, ErrJwtInvalid
 	}
 
 	if claims.UserId == "" {
-		return claims, ErrParsingJwt
+		return claims, ErrJwtInvalid
 	}
 
 	return claims, nil
 
-}
-
-func NewPairFromRefresh(r string) (string, string, error) {
-	claims, err := ParseToken(r)
-	if err != nil {
-		return "", "", err
-	}
-
-	access, refresh, err := NewTokenPair(JwtParams{UserId: claims.UserId})
-	if err != nil {
-		return "", "", err
-	}
-	return access, refresh, nil
 }
 
 func ParseOrRefreshToken(a string, r string) (string, string, error) {
@@ -121,7 +108,7 @@ func ParseOrRefreshToken(a string, r string) (string, string, error) {
 	}
 
 	// even if access was bad, maybe the refresh is good
-	_, err = ParseToken(r)
+	refreshClaims, err := ParseToken(r)
 	if err != nil {
 		if err == ErrJwtInvalidInDb {
 			return "", "", ErrJwtInvalidInDb
@@ -129,8 +116,8 @@ func ParseOrRefreshToken(a string, r string) (string, string, error) {
 		return "", "", err
 	}
 
-	// sweet, a good refresh jwt. let's make a new pair
-	access, refresh, err := NewPairFromRefresh(r)
+	// sweet, a good refresh jwt. let's make a new pair using the OLD family.
+	access, refresh, _, err := NewTokenPair(JwtParams{UserId: refreshClaims.UserId, Family: refreshClaims.Family})
 	if err != nil {
 		return "", "", err
 	}

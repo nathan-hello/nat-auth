@@ -25,7 +25,7 @@ const (
 	ErrParsingJwt            BitError = 1 << 35
 	ErrInvalidToken          BitError = 1 << 36
 	ErrJwtNotInHeader        BitError = 1 << 37
-	ErrJwtNotInDb            BitError = 1 << 38
+	ErrJwtInvalid            BitError = 1 << 38
 	ErrJwtMethodBad          BitError = 1 << 39
 	ErrJwtInvalidInDb        BitError = 1 << 40
 	ErrDbConnection          BitError = 1 << 41
@@ -56,7 +56,7 @@ var messages = map[BitError]string{
 	ErrParsingJwt:            "failed to parse JWT",
 	ErrInvalidToken:          "invalid token",
 	ErrJwtNotInHeader:        "JWT not found in header",
-	ErrJwtNotInDb:            "JWT not found in database",
+	ErrJwtInvalid:            "JWT not found in database",
 	ErrJwtMethodBad:          "invalid JWT signing method",
 	ErrJwtInvalidInDb:        "JWT marked as invalid in database",
 	ErrDbConnection:          "database connection error",
@@ -81,27 +81,14 @@ var errorCategories = map[BitError]string{
 	ErrBadLogin:              "password",
 }
 
-// Has checks if the error collection contains a specific error
 func (e BitError) Has(err BitError) bool {
 	return (e & err) != 0
 }
 
-// Add combines this error with another error
 func (e BitError) Add(err BitError) BitError {
 	return e | err
 }
 
-// Remove removes a specific error from the collection
-func (e BitError) Remove(err BitError) BitError {
-	return e &^ err
-}
-
-// IsEmpty checks if there are no errors
-func (e BitError) IsEmpty() bool {
-	return e == 0
-}
-
-// Count returns the number of errors in the collection
 func (e BitError) Count() int {
 	count := 0
 	for i := 0; i < 64; i++ {
@@ -112,9 +99,8 @@ func (e BitError) Count() int {
 	return count
 }
 
-// GetErrors returns all individual errors as a slice
-func (e BitError) GetErrors() []BitError {
-	var errs []BitError
+func (e BitError) GetErrors() []error {
+	var errs []error
 	for i := 0; i < 64; i++ {
 		err := BitError(1 << i)
 		if e.Has(err) {
@@ -129,7 +115,9 @@ func (e BitError) GetErrors() []BitError {
 func (e BitError) RenderUserMessages() []string {
 	var renderedMessages []string
 	for err := range messages {
-		if err.GetSystemErrors() != 0 {
+		// If there is at least one internal server error,
+		// then any user errors are likely system errors is disguise
+		if err.GetSystemErrors() > 0 {
 			return []string{ErrInternalServer.Error()}
 		}
 
@@ -172,7 +160,7 @@ func (e BitError) GetSystemErrors() BitError {
 }
 
 func (e BitError) Error() string {
-	if e.IsEmpty() {
+	if e == 0 {
 		return ""
 	}
 
@@ -181,5 +169,5 @@ func (e BitError) Error() string {
 		return messages[0]
 	}
 
-	return fmt.Sprintf("multiple errors: %v", messages)
+	return fmt.Sprintf("%v", messages)
 }

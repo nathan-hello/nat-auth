@@ -3,8 +3,8 @@ package utils
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
-	"os"
 )
 
 type Sloggers struct {
@@ -43,6 +43,16 @@ func (s *Sloggers) Error(format string, args ...any) {
 }
 
 var found = map[string]*Sloggers{}
+var writers = []io.Writer{}
+var level slog.Level
+
+func LogLevel(l slog.Level) {
+	level = l
+}
+
+func LogNewOutput(w io.Writer) {
+	writers = append(writers, w)
+}
 
 func Log(key string) *Sloggers {
 	if s, ok := found[key]; ok {
@@ -52,10 +62,15 @@ func Log(key string) *Sloggers {
 	s := &Sloggers{
 		key: key,
 	}
-	stdout := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
-	}))
-	s.slogs = append(s.slogs, stdout)
+
+	for _, v := range writers {
+		writer := slog.New(slog.NewJSONHandler(v, &slog.HandlerOptions{
+			Level:     level,
+			AddSource: true,
+		}))
+		s.slogs = append(s.slogs, writer)
+	}
+
 	found[key] = s
 
 	return s

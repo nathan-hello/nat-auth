@@ -28,19 +28,24 @@ func main() {
 	p := password.PasswordHandler{
 		UsernameValidate: nil,
 		Database:         &store,
-		RedirectAfterSignIn: func(r *http.Request) string {
-			return "/"
-		},
-		RedirectAfterSignUp: func(r *http.Request) string {
-			return "/"
+		Redirects: password.PasswordRedirects{
+			AfterSignIn: func(r *http.Request) string {
+				return "/"
+			},
+			AfterSignUp: func(r *http.Request) string {
+				return "/"
+			},
+			AfterSignOut: func(r *http.Request) string {
+				return "/"
+			},
 		},
 		Ui: password.PasswordUiDefault,
 	}
 
-	http.Handle("/", httpwr.VerifyJwtAndInjectUserId(httpwr.Logger(http.HandlerFunc(HomeHandler))))
-	http.Handle("/auth/signup", httpwr.VerifyJwtAndInjectUserId(httpwr.Logger(http.HandlerFunc(p.SignUpHandler))))
-	http.Handle("/auth/signin", httpwr.VerifyJwtAndInjectUserId(httpwr.Logger(http.HandlerFunc(p.SignInHandler))))
-	http.Handle("/protected", httpwr.VerifyJwtAndInjectUserId(httpwr.Logger(http.HandlerFunc(ProtectedHandler))))
+	http.Handle("/", newRoute(HomeHandler))
+	http.Handle("/auth/signup", newRoute(p.SignUpHandler))
+	http.Handle("/auth/signin", newRoute(p.SignInHandler))
+	http.Handle("/protected", newRoute(ProtectedHandler))
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -57,6 +62,10 @@ func main() {
 	if err := http.ListenAndServe(":3000", nil); err != nil {
 		utils.Log("main").Error("Server failed: %v", err)
 	}
+}
+
+func newRoute(f http.HandlerFunc) http.Handler {
+	return httpwr.VerifyJwtAndInjectUserId(httpwr.Logger(http.HandlerFunc(f)))
 }
 
 func ProtectedHandler(w http.ResponseWriter, r *http.Request) {

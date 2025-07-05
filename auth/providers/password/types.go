@@ -21,6 +21,15 @@ type PasswordUi struct {
 	HtmlFormSignIn func(*http.Request, FormState) []byte
 }
 
+type PasswordRedirects struct {
+	BeforeSignUp  func(*http.Request) string
+	BeforeSignIn  func(*http.Request) string
+	BeforeSignOut func(*http.Request) string
+	AfterSignUp   func(*http.Request) string
+	AfterSignIn   func(*http.Request) string
+	AfterSignOut  func(*http.Request) string
+}
+
 var PasswordUiDefault = PasswordUi{
 	HtmlPageSignUp: func(r *http.Request) []byte {
 		var buf bytes.Buffer
@@ -45,9 +54,8 @@ var PasswordUiDefault = PasswordUi{
 }
 
 type PasswordHandler struct {
-	UsernameValidate    func(s string) auth.BitError
-	Database            storage.DbPassword
-	RedirectAfterSignUp func(*http.Request) string
-	RedirectAfterSignIn func(*http.Request) string
-	Ui                  PasswordUi
+	UsernameValidate func(s string) auth.BitError
+	Database         storage.DbPassword
+	Ui               PasswordUi
+	Redirects        PasswordRedirects
 }

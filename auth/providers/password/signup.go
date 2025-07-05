@@ -11,7 +11,9 @@ import (
 
 func (p PasswordHandler) SignUpHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-
+		if done := httpwr.Redirect(w, r, p.Redirects.BeforeSignUp, ""); done {
+			return
+		}
 		p.SignUp_GET(w, r)
 		return
 	}
@@ -47,8 +49,7 @@ func (p PasswordHandler) SignUp_POST(w http.ResponseWriter, r *http.Request) {
 
 	httpwr.SetTokenCookies(w, access, refresh)
 
-	redirect := p.RedirectAfterSignUp(r)
-	w.Header().Set("HX-Redirect", redirect)
+	httpwr.Redirect(w, r, p.Redirects.AfterSignUp, "/")
 }
 
 func (p PasswordHandler) SignUp_Work(username, password, repeated string) (string, string, auth.BitError) {
@@ -95,10 +96,15 @@ func (p PasswordHandler) SignUp_Work(username, password, repeated string) (strin
 		return "", "", errs
 	}
 
-	access, refresh, err := auth.NewTokenPair(auth.JwtParams{UserId: subject})
+	access, refresh, family, err := auth.NewTokenPair(auth.JwtParams{UserId: subject})
 	if err != nil {
-		utils.Log("api-register").Error("could not create token pair: %#v", err)
+		utils.Log("post-register").Error("could not create token pair: %#v", err)
 		return "", "", auth.ErrParsingJwt
+	}
+
+	err = p.Database.InsertFamily(subject, family, true)
+	if err != nil {
+		return "", "", auth.ErrDbInsertToken
 	}
 
 	return access, refresh, errs

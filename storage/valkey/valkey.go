@@ -15,7 +15,7 @@ type VK struct {
 	client valkey.Client
 }
 
-func (vk *VK) Init(addr string) {
+func (vk *VK) InitDb(addr string) {
 	var err error
 	vk.client, err = valkey.NewClient(valkey.ClientOption{InitAddress: []string{addr}})
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/nathan-hello/nat-auth/auth/providers"
 	"github.com/nathan-hello/nat-auth/httpwr"
@@ -15,7 +16,13 @@ import (
 
 func main() {
 	store := valkey.VK{}
-	store.Init("127.0.0.1:6379")
+	store.InitDb("127.0.0.1:6379")
+	utils.InitJwt(utils.ConfigJwt{
+		Secret:        "secret",
+		SecureCookie:  true,
+		AccessExpiry:  1 * time.Hour,
+		RefreshExpiry: 24 * time.Hour,
+	})
 
 	p := providers.PasswordHandler{
 		UsernameValidate: nil,
@@ -31,7 +38,6 @@ func main() {
 	http.Handle("/auth/signup", httpwr.Logger(http.HandlerFunc(p.RegisterHandler)))
 	http.Handle("/auth/signin", httpwr.Logger(http.HandlerFunc(p.AuthorizeHandler)))
 
-	// Setup signal handling for graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 

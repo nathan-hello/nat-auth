@@ -11,26 +11,15 @@ type ConfigJwt struct {
 	RefreshExpiry time.Duration
 }
 
-type Config struct {
-	ConfigJwt
-}
+var localConfig *ConfigJwt
 
-var localConfig *Config
-
-func InitConfig(c Config) {
+func InitJwt(c ConfigJwt) {
 	localConfig = &c
 }
 
-func LocalConfig() *Config {
+func LocalConfig() *ConfigJwt {
 	if localConfig != nil {
 		return localConfig
 	}
-	return &Config{
-		ConfigJwt: ConfigJwt{
-			Secret:        "secret",
-			SecureCookie:  true,
-			AccessExpiry:  1 * time.Hour,
-			RefreshExpiry: 24 * time.Hour,
-		},
-	}
+	return nil
 }

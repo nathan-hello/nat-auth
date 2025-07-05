@@ -71,6 +71,7 @@ func ProtectedHandler(w http.ResponseWriter, r *http.Request) {
 
 // HomeHandler handles the home route
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
+	userId := auth.GetUserId(r)
 	w.Header().Set("Content-Type", "text/html")
-	components.Root().Render(r.Context(), w)
+	components.Root(userId).Render(r.Context(), w)
 }

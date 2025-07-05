@@ -1,50 +1,38 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/nathan-hello/nat-auth/auth"
 	"github.com/nathan-hello/nat-auth/auth/providers/password"
-	"github.com/nathan-hello/nat-auth/httpwr"
-	"github.com/nathan-hello/nat-auth/storage/valkey"
+	pwui "github.com/nathan-hello/nat-auth/auth/providers/password/components"
+	"github.com/nathan-hello/nat-auth/storage"
+
 	"github.com/nathan-hello/nat-auth/test/app/components"
-	"github.com/nathan-hello/nat-auth/utils"
 )
 
 func main() {
-	store := valkey.VK{}
-	store.InitDb("127.0.0.1:6379")
-	utils.InitJwt(utils.ConfigJwt{
-		Secret:        "secret",
-		SecureCookie:  true,
-		AccessExpiry:  1 * time.Hour,
-		RefreshExpiry: 24 * time.Hour,
-	}, "pub.pem", "key.pem")
+	store := storage.NewValkey("127.0.0.1:6379")
+	password.InitJwt(password.AuthParams{
+		PublicKeyPath:  "pub.pem",
+		PrivateKeyPath: "key.pem",
+		Secret:         "secret",
+	})
 
 	p := password.PasswordHandler{
-		UsernameValidate: nil,
-		Database:         &store,
-		Redirects: password.PasswordRedirects{
-			AfterSignIn: func(r *http.Request) string {
-				return "/"
-			},
-			AfterSignUp: func(r *http.Request) string {
-				return "/"
-			},
-			AfterSignOut: func(r *http.Request) string {
-				return "/"
-			},
-		},
-		Ui: password.PasswordUiDefault,
+		Database: store,
+		Ui:       pwui.PasswordUiDefault,
 	}
 
 	http.Handle("/", newRoute(HomeHandler))
 	http.Handle("/auth/signup", newRoute(p.SignUpHandler))
 	http.Handle("/auth/signin", newRoute(p.SignInHandler))
+	http.Handle("/auth/signout", newRoute(p.SignOutHandler))
+	http.Handle("/auth/signoutall", newRoute(p.SignOutEverywhereHandler))
 	http.Handle("/protected", newRoute(ProtectedHandler))
 
 	sigChan := make(chan os.Signal, 1)
@@ -52,26 +40,26 @@ func main() {
 
 	go func() {
 		<-sigChan
-		utils.Log("main").Info("Received shutdown signal, closing connections...")
+		fmt.Printf("Received shutdown signal, closing connections...")
 		store.Client.Close()
-		utils.Log("main").Info("Valkey client closed")
+		fmt.Printf("Valkey client closed")
 		os.Exit(0)
 	}()
 
-	utils.Log("main").Info("Server starting on :3000")
+	fmt.Println("Server starting on :3000")
 	if err := http.ListenAndServe(":3000", nil); err != nil {
-		utils.Log("main").Error("Server failed: %v", err)
+		fmt.Printf("Server failed: %v", err)
 	}
 }
 
 func newRoute(f http.HandlerFunc) http.Handler {
-	return httpwr.VerifyJwtAndInjectUserId(httpwr.Logger(http.HandlerFunc(f)))
+	return password.MiddlewareVerifyJwtAndInjectUserId(logger(http.HandlerFunc(f)))
 }
 
 func ProtectedHandler(w http.ResponseWriter, r *http.Request) {
 	userId := auth.GetUserId(r)
 	if userId == "" {
-		utils.Log("protected-handler").Error("User ID not found in request context")
+		fmt.Println("User ID not found in request context")
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
@@ -83,4 +71,11 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	userId := auth.GetUserId(r)
 	w.Header().Set("Content-Type", "text/html")
 	components.Root(userId).Render(r.Context(), w)
+}
+
+func logger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Printf("request: %s %s\n", r.Method, r.URL.Path)
+		next.ServeHTTP(w, r)
+	})
 }

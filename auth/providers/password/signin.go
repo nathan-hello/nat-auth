@@ -3,14 +3,12 @@ package password
 import (
 	"net/http"
 
-	"github.com/nathan-hello/nat-auth/auth"
-	"github.com/nathan-hello/nat-auth/httpwr"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func (p PasswordHandler) SignInHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		if done := httpwr.Redirect(w, r, p.Redirects.BeforeSignIn, ""); done {
+		if done := Redirect(w, r, p.Redirects.BeforeSignIn, ""); done {
 			return
 		}
 		p.SignIn_GET(w, r)
@@ -29,7 +27,7 @@ func (p PasswordHandler) SignIn_GET(w http.ResponseWriter, r *http.Request) {
 
 func (p PasswordHandler) SignIn_POST(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		w.Write(p.Ui.HtmlFormSignIn(r, FormState{Errors: auth.ErrInternalServer}))
+		w.Write(p.Ui.HtmlFormSignIn(r, FormState{Errors: ErrInternalServer}))
 		return
 	}
 	username := r.FormValue("username")
@@ -41,35 +39,35 @@ func (p PasswordHandler) SignIn_POST(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httpwr.SetTokenCookies(w, access, refresh)
+	CookieSetTokens(w, access, refresh)
 
-	httpwr.Redirect(w, r, p.Redirects.AfterSignIn, "/")
+	Redirect(w, r, p.Redirects.AfterSignIn, "/")
 }
 
-func (p PasswordHandler) SignIn_Work(username, password string) (string, string, auth.BitError) {
+func (p PasswordHandler) SignIn_Work(username, password string) (string, string, BitError) {
 	dbPassword, err := p.Database.SelectPasswordByUsername(username)
 	if err != nil {
-		return "", "", auth.ErrBadLogin
+		return "", "", ErrBadLogin
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(dbPassword), []byte(password))
 	if err != nil {
-		return "", "", auth.ErrBadLogin
+		return "", "", ErrBadLogin
 	}
 
 	subject, err := p.Database.SelectSubjectByUsername(username)
 	if err != nil {
-		return "", "", auth.ErrDbSelectUserSubject
+		return "", "", ErrDbSelectUserSubject
 	}
 
-	access, refresh, family, err := auth.NewTokenPair(auth.JwtParams{UserId: subject})
+	access, refresh, family, err := NewTokenPair(JwtParams{UserId: subject})
 	if err != nil {
-		return "", "", auth.ErrParsingJwt
+		return "", "", ErrParsingJwt
 	}
 
 	err = p.Database.InsertFamily(subject, family, true)
 	if err != nil {
-		return "", "", auth.ErrDbInsertToken
+		return "", "", ErrDbInsertToken
 	}
 
 	return access, refresh, 0

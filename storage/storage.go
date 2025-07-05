@@ -1,6 +1,7 @@
 package storage
 
 type DbJwt interface {
+	NewUserId() (string, error)
 	InsertFamily(userId, family string, value bool) error
 	SelectFamily(userId, family string) bool
 	InvalidateUser(userId string) error

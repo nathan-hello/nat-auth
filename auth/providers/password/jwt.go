@@ -1,10 +1,12 @@
-package auth
+package password
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+	"io"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/nathan-hello/nat-auth/utils"
 )
 
 type CustomClaims struct {
@@ -21,7 +23,7 @@ type JwtParams struct {
 
 func NewTokenPair(j JwtParams) (string, string, string, error) {
 	if j.Family == "" {
-		fam, err := utils.NewUUID()
+		fam, err := newUuid()
 		if err != nil {
 			return "", "", "", err
 		}
@@ -29,7 +31,7 @@ func NewTokenPair(j JwtParams) (string, string, string, error) {
 	}
 
 	ac := jwt.MapClaims{
-		"exp":      time.Now().Add(utils.LocalConfig().AccessExpiry).Unix(),
+		"exp":      time.Now().Add(LocalConfig().AccessExpiry).Unix(),
 		"iat":      time.Now().Unix(),
 		"iss":      "nat-auth",
 		"sub":      j.UserId,
@@ -39,13 +41,13 @@ func NewTokenPair(j JwtParams) (string, string, string, error) {
 
 	access := jwt.NewWithClaims(jwt.SigningMethodHS256, &ac)
 
-	as, err := access.SignedString([]byte(utils.LocalConfig().Secret))
+	as, err := access.SignedString([]byte(LocalConfig().Secret))
 	if err != nil {
 		return "", "", "", err
 	}
 
 	rc := jwt.MapClaims{
-		"exp":      time.Now().Add(utils.LocalConfig().RefreshExpiry).Unix(),
+		"exp":      time.Now().Add(LocalConfig().RefreshExpiry).Unix(),
 		"iat":      time.Now().Unix(),
 		"iss":      "nat-auth",
 		"sub":      j.UserId,
@@ -54,7 +56,7 @@ func NewTokenPair(j JwtParams) (string, string, string, error) {
 	}
 
 	refresh := jwt.NewWithClaims(jwt.SigningMethodHS256, &rc)
-	rs, err := refresh.SignedString([]byte(utils.LocalConfig().Secret))
+	rs, err := refresh.SignedString([]byte(LocalConfig().Secret))
 	if err != nil {
 		return "", "", "", err
 	}
@@ -73,7 +75,7 @@ func ParseToken(t string) (CustomClaims, error) {
 				// the jwt library wraps this error
 				return nil, ErrJwtMethodBad
 			}
-			return []byte(utils.LocalConfig().Secret), nil
+			return []byte(LocalConfig().Secret), nil
 		})
 
 	if err != nil {
@@ -123,4 +125,31 @@ func ParseOrRefreshToken(a string, r string) (string, string, error) {
 	}
 
 	return access, refresh, nil
+}
+
+// Taken from github.com/google/uuid/version4.go
+func newUuid() (string, error) {
+	var uuid [16]byte
+	_, err := io.ReadFull(rand.Reader, uuid[:])
+	if err != nil {
+		return "", err
+	}
+	uuid[6] = (uuid[6] & 0x0f) | 0x40 // Version 4
+	uuid[8] = (uuid[8] & 0x3f) | 0x80 // Variant is 10
+	var buf [36]byte
+	encodeHex(buf[:], uuid)
+	return string(buf[:]), nil
+}
+
+// Taken from github.com/google/uuid/version4.go
+func encodeHex(dst []byte, uuid [16]byte) {
+	hex.Encode(dst, uuid[:4])
+	dst[8] = '-'
+	hex.Encode(dst[9:13], uuid[4:6])
+	dst[13] = '-'
+	hex.Encode(dst[14:18], uuid[6:8])
+	dst[18] = '-'
+	hex.Encode(dst[19:23], uuid[8:10])
+	dst[23] = '-'
+	hex.Encode(dst[24:], uuid[10:])
 }

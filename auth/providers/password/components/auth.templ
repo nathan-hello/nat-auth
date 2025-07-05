@@ -1,7 +1,7 @@
 package components
 
 import "fmt"
-import "github.com/nathan-hello/nat-auth/auth"
+import "github.com/nathan-hello/nat-auth/auth/providers/password"
 import "unicode"
 
 func borderColor(t bool) string {
@@ -68,7 +68,7 @@ templ username(errorBorder bool, value string) {
 	</div>
 }
 
-templ password(errorBorder bool) {
+templ passwordBox(errorBorder bool) {
 	<div>
 		<label for="password" class="block mb-2  font-medium text-gray-900 dark:text-white">Password</label>
 		<input
@@ -109,7 +109,7 @@ templ authRedirect(s string, link string) {
 	<p class="float-left my-2 mx-auto text-blue-950 w-min whitespace-nowrap mt-5  underline"><a href={ templ.URL(link) }>{ s }</a></p>
 }
 
-templ renderErrs(errors auth.BitError) {
+templ renderErrs(errors password.BitError) {
 	if msgs := errors.RenderUserMessages(); len(msgs) > 0 {
 		<div id="errors-container">
 			for _, v := range msgs {
@@ -119,13 +119,13 @@ templ renderErrs(errors auth.BitError) {
 	}
 }
 
-templ SignUpForm(previousUsername string, errors auth.BitError) {
+templ SignUpForm(previousUsername string, errors password.BitError) {
 	<form class="text-2xl gap-y-4 flex flex-col max-w-screen-md mx-auto" hx-post="/auth/signup" hx-target="this">
 		<p class="font-semibold text-gray-100 text-center text-2xl mx-auto  border-b border-white w-min whitespace-nowrap px-20 pb-2 mb-6">
 			Create an account
 		</p>
 		@username(len(errors.GetErrorsByCategory("username")) > 0, previousUsername)
-		@password(len(errors.GetErrorsByCategory("password")) > 0)
+		@passwordBox(len(errors.GetErrorsByCategory("password")) > 0)
 		@repeated(len(errors.GetErrorsByCategory("repeated")) > 0)
 		@submitFormButton()
 		@authRedirect("Already have an account?", "/auth/signin")
@@ -134,7 +134,7 @@ templ SignUpForm(previousUsername string, errors auth.BitError) {
 	</form>
 }
 
-templ SignUp(username string, errors auth.BitError) {
+templ SignUp(username string, errors password.BitError) {
 	@layout(LayoutParams{TabTitle: "Sign Up", NavTitle: "Bear Auth"}, ClientState{Username: ""}) {
 		<div class="pt-8">
 			@SignUpForm(username, errors)
@@ -142,13 +142,13 @@ templ SignUp(username string, errors auth.BitError) {
 	}
 }
 
-templ SignInForm(username string, errors auth.BitError) {
+templ SignInForm(username string, errors password.BitError) {
 	<form class="text-2xl gayp-y-4 flex flex-col max-w-screen-md mx-auto" hx-post="/auth/signin" hx-target="this">
 		<p class="font-semibold text-gray-100 text-center text-2xl mx-auto  border-b border-white w-min whitespace-nowrap px-20 pb-2 mb-6">
 			Sign In
 		</p>
 		@user(len(errors.GetErrorsByCategory("username"))>1, username)
-		@password(len(errors.GetErrorsByCategory("password"))>1)
+		@passwordBox(len(errors.GetErrorsByCategory("password"))>1)
 		@submitFormButton()
 		@authRedirect("Need an account?", "/auth/signup")
 		<div class="py-2"></div>
@@ -156,7 +156,7 @@ templ SignInForm(username string, errors auth.BitError) {
 	</form>
 }
 
-templ SignIn(username string, errors auth.BitError) {
+templ SignIn(username string, errors password.BitError) {
 	@layout(LayoutParams{TabTitle: "Sign In", NavTitle: "Bear Auth"}, ClientState{Username: ""}) {
 		<div class="pt-8">
 			@SignInForm(username, errors)

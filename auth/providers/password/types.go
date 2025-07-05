@@ -1,17 +1,14 @@
 package password
 
 import (
-	"bytes"
 	"net/http"
 
-	"github.com/nathan-hello/nat-auth/auth"
-	"github.com/nathan-hello/nat-auth/auth/providers/password/components"
 	"github.com/nathan-hello/nat-auth/storage"
 )
 
 type FormState struct {
 	Username string
-	Errors   auth.BitError
+	Errors   BitError
 }
 
 type PasswordUi struct {
@@ -30,31 +27,8 @@ type PasswordRedirects struct {
 	AfterSignOut  func(*http.Request) string
 }
 
-var PasswordUiDefault = PasswordUi{
-	HtmlPageSignUp: func(r *http.Request) []byte {
-		var buf bytes.Buffer
-		components.SignUp("", 0).Render(r.Context(), &buf)
-		return buf.Bytes()
-	},
-	HtmlFormSignUp: func(r *http.Request, state FormState) []byte {
-		var buf bytes.Buffer
-		components.SignUpForm(state.Username, state.Errors).Render(r.Context(), &buf)
-		return buf.Bytes()
-	},
-	HtmlPageSignIn: func(r *http.Request) []byte {
-		var buf bytes.Buffer
-		components.SignIn("", 0).Render(r.Context(), &buf)
-		return buf.Bytes()
-	},
-	HtmlFormSignIn: func(r *http.Request, state FormState) []byte {
-		var buf bytes.Buffer
-		components.SignInForm(state.Username, state.Errors).Render(r.Context(), &buf)
-		return buf.Bytes()
-	},
-}
-
 type PasswordHandler struct {
-	UsernameValidate func(s string) auth.BitError
+	UsernameValidate func(s string) BitError
 	Database         storage.DbPassword
 	Ui               PasswordUi
 	Redirects        PasswordRedirects

@@ -1,4 +1,4 @@
-package utils
+package password
 
 import (
 	"crypto/rsa"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwe"
+	"github.com/nathan-hello/nat-auth/logger"
 )
 
 type ConfigJwt struct {
@@ -19,23 +20,35 @@ type ConfigJwt struct {
 
 var localConfig *ConfigJwt
 
-func InitJwt(c ConfigJwt, pub string, priv string) {
-	pubPem, err := os.ReadFile(pub)
+type AuthParams struct {
+	Secret         string
+	PublicKeyPath  string
+	PrivateKeyPath string
+}
+
+func InitJwt(params AuthParams) {
+	c := ConfigJwt{
+		Secret:        params.Secret,
+		SecureCookie:  true,
+		AccessExpiry:  15 * time.Minute,
+		RefreshExpiry: 2 * time.Hour,
+	}
+	pubPem, err := os.ReadFile(params.PublicKeyPath)
 	if err != nil {
-		Log("jwt").Warn("%s", err)
+		logger.Log("jwt").Warn("%s", err)
 	}
 	c.PublicKey, err = jwe.ParseRSAPublicKeyFromPEM(pubPem)
 	if err != nil {
-		Log("jwt").Warn("%s", err)
+		logger.Log("jwt").Warn("%s", err)
 	}
 
-	privPem, err := os.ReadFile(priv)
+	privPem, err := os.ReadFile(params.PrivateKeyPath)
 	if err != nil {
-		Log("jwt").Warn("%s", err)
+		logger.Log("jwt").Warn("%s", err)
 	}
 	c.PrivateKey, err = jwe.ParseRSAPrivateKeyFromPEM(privPem)
 	if err != nil {
-		Log("jwt").Warn("%s", err)
+		logger.Log("jwt").Warn("%s", err)
 	}
 
 	localConfig = &c

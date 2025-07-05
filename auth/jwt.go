@@ -105,7 +105,7 @@ func NewPairFromRefresh(r string) (string, string, error) {
 	return access, refresh, nil
 }
 
-func ValidateOrRefreshToken(a string, r string) (string, string, error) {
+func ParseOrRefreshToken(a string, r string) (string, string, error) {
 
 	_, err := ParseToken(a)
 	// if access is good, let's just refresh

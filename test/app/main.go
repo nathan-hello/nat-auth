@@ -23,7 +23,7 @@ func main() {
 		SecureCookie:  true,
 		AccessExpiry:  1 * time.Hour,
 		RefreshExpiry: 24 * time.Hour,
-	})
+	}, "pub.pem", "key.pem")
 
 	p := password.PasswordHandler{
 		UsernameValidate: nil,

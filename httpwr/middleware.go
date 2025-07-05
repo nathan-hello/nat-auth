@@ -8,7 +8,6 @@ import (
 	"github.com/nathan-hello/nat-auth/utils"
 )
 
-
 func Logger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		utils.Log("http-logger").Debug("request: %s %s", r.Method, r.URL.Path)
@@ -18,7 +17,7 @@ func Logger(next http.Handler) http.Handler {
 
 func VerifyJwtAndInjectUserId(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		access, _, ok := ValidateRefreshOrDeleteTokenFromCookies(w, r)
+		access, _, ok := ParseRefreshOrDeleteToken(w, r)
 		if !ok {
 			next.ServeHTTP(w, r)
 			return

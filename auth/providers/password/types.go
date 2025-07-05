@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/nathan-hello/nat-auth/auth"
-	"github.com/nathan-hello/nat-auth/providers/password/components"
+	"github.com/nathan-hello/nat-auth/auth/providers/password/components"
 	"github.com/nathan-hello/nat-auth/storage"
 )
 

@@ -102,7 +102,7 @@ func (p PasswordHandler) postRegister(username, password, repeat string) (*auth.
 		return nil, errs
 	}
 
-	err = p.Database.InsertUser(username, hashedPassword, subject)
+	err = p.Database.InsertUser(username, string(hashedPassword), subject)
 	if err != nil {
 		utils.Log("post-register").Error("could not insert user: %s, error: %#v", username, err.Error())
 		errs = errs.Add(problems.ErrDbInsertUser)
@@ -137,7 +137,7 @@ func (p PasswordHandler) AuthorizeHandler(w http.ResponseWriter, r *http.Request
 			return
 		}
 
-		err = bcrypt.CompareHashAndPassword(dbPassword, []byte(password))
+		err = bcrypt.CompareHashAndPassword([]byte(dbPassword), []byte(password))
 		if err != nil {
 			utils.Log("authorize-handler").Error("hash and password do not match: %s, error: %#v", username, err)
 			components.SignIn(username, problems.ErrBadLogin)

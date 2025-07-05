@@ -1,7 +1,8 @@
 package storage
 
 type DB interface {
-	InsertUser(username string, password []byte, subject string) error
+	Init(addr string)
+	InsertUser(username string, password string, subject string) error
 	SelectSubjectByUsername(username string) (string, error)
-	SelectPasswordByUsername(username string) ([]byte, error)
+	SelectPasswordByUsername(username string) (string, error)
 }

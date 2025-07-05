@@ -6,35 +6,16 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/nathan-hello/nat-auth/auth/providers"
 	"github.com/nathan-hello/nat-auth/httpwr"
-	"github.com/nathan-hello/nat-auth/storage"
 	"github.com/nathan-hello/nat-auth/storage/valkey"
 	"github.com/nathan-hello/nat-auth/utils"
 )
 
 func main() {
-	// Create a robust connection manager
-	connManager := storage.NewConnectionManager("127.0.0.1:6379", 5, time.Second, 10*time.Second)
-
-	// Attempt initial connection
-	if err := connManager.Connect(); err != nil {
-		utils.Log("main").Error("Failed to connect to Valkey: %v", err)
-		panic(err)
-	}
-
-	// Setup graceful shutdown
-	defer func() {
-		if err := connManager.Close(); err != nil {
-			utils.Log("main").Error("Error closing connection: %v", err)
-		}
-	}()
-
-	store := valkey.VK{
-		ConnManager: connManager,
-	}
+	store := valkey.VK{}
+	store.Init("127.0.0.1:6379")
 
 	p := providers.PasswordHandler{
 		UsernameValidate: nil,
@@ -57,7 +38,6 @@ func main() {
 	go func() {
 		<-sigChan
 		utils.Log("main").Info("Received shutdown signal, closing connections...")
-		connManager.Close()
 		os.Exit(0)
 	}()
 

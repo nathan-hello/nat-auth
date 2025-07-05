@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"net/http"
 	"os"
 	"os/signal"
@@ -9,23 +8,29 @@ import (
 
 	"github.com/nathan-hello/nat-auth/auth/providers"
 	"github.com/nathan-hello/nat-auth/httpwr"
-	"github.com/nathan-hello/nat-auth/storage/valkey"
+	kv "github.com/nathan-hello/nat-auth/storage/valkey"
 	"github.com/nathan-hello/nat-auth/utils"
+	"github.com/valkey-io/valkey-go"
 )
 
 func main() {
-	store := valkey.VK{}
-	store.Init("127.0.0.1:6379")
+
+	client, err := valkey.NewClient(valkey.ClientOption{InitAddress: []string{"127.0.0.1:6379"}})
+	if err != nil {
+		panic(err)
+	}
+	store := kv.VK{Client: client}
 
 	p := providers.PasswordHandler{
 		UsernameValidate: nil,
 		Database:         &store,
-		RedirectAfterSignIn: func(ctx context.Context) string {
+		RedirectAfterSignIn: func(r *http.Request) string {
 			return "/"
 		},
-		RedirectAfterSignUp: func(ctx context.Context) string {
+		RedirectAfterSignUp: func(r *http.Request) string {
 			return "/"
 		},
+		Ui: providers.PasswordUiDefault,
 	}
 
 	http.Handle("/auth/signup", httpwr.Logger(http.HandlerFunc(p.RegisterHandler)))
@@ -38,6 +43,8 @@ func main() {
 	go func() {
 		<-sigChan
 		utils.Log("main").Info("Received shutdown signal, closing connections...")
+		store.Client.Close()
+		utils.Log("main").Info("Valkey client closed")
 		os.Exit(0)
 	}()
 

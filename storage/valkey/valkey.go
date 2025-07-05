@@ -30,21 +30,21 @@ func buildSetCommand(key string, val []byte, expiry *time.Duration) []byte {
 		[]byte(key),
 		val,
 	}
-
 	if expiry != nil {
-		str := strconv.FormatInt(int64(expiry.Seconds()), 10)
-		args = append(args, []byte("EX"), []byte(str))
+		args = append(args,
+			[]byte("EX"),
+			[]byte(strconv.FormatInt(int64(expiry.Seconds()), 10)),
+		)
 	}
 
-	var cmd []byte
-	cmd = fmt.Appendf(cmd, "*%d\r\n", len(args))
-
+	var buf bytes.Buffer
+	buf.WriteString(fmt.Sprintf("*%d\r\n", len(args)))
 	for _, arg := range args {
-		cmd = fmt.Appendf(cmd, "*%d\r\n", len(arg))
-		cmd = append(cmd, arg...)
-		cmd = append(cmd, []byte("\r\n")...)
+		buf.WriteString(fmt.Sprintf("$%d\r\n", len(arg)))
+		buf.Write(arg)
+		buf.WriteString("\r\n")
 	}
-	return cmd
+	return buf.Bytes()
 }
 
 func (vk *VK) set(key []string, val []byte) error {
@@ -54,17 +54,27 @@ func (vk *VK) set(key []string, val []byte) error {
 func (vk *VK) setWithExpiry(key []string, val []byte, expiry time.Duration) error {
 	joined := strings.Join(key, US)
 
-	_, err := vk.ConnManager.Write(buildSetCommand(joined, val, &expiry))
-	if err != nil {
+	var expPtr *time.Duration
+	if expiry > 0 {
+		expPtr = &expiry
+	}
+
+	cmd := buildSetCommand(joined, val, expPtr)
+	utils.Log("valkey").Debug(string(cmd))
+
+	if _, err := vk.ConnManager.Write(cmd); err != nil {
 		return err
 	}
 	buf := make([]byte, 1024)
-	_, err = vk.ConnManager.Read(buf)
+	n, err := vk.ConnManager.Read(buf)
 	if err != nil {
 		return err
 	}
-	if strings.HasPrefix(string(buf), "(error)") {
-		return errors.New((string(buf)))
+	resp := string(buf[:n])
+	utils.Log("valkey").Debug(resp)
+
+	if strings.HasPrefix(resp, "(error)") {
+		return errors.New(resp)
 	}
 	return nil
 }
@@ -81,7 +91,7 @@ func (vk *VK) get(key []string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if strings.HasPrefix(string(buf), "(nil)") {
+	if strings.HasPrefix(string(buf), "(nil)") || strings.HasPrefix(string(buf), "$-Er") {
 		return nil, errors.New("row does not exist")
 	}
 	if strings.HasPrefix(string(buf), "(error)") {
@@ -192,6 +202,7 @@ func (vk *VK) SelectSubjectByUsername(username string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	utils.Log("valkey").Error("SelectSubjectByUsername: #%v", string(subject))
 	if len(subject) == 0 {
 		utils.Log("valkey").Error("SelectSubjectByUsername: subject is empty")
 		return "", errors.New("subject is empty")

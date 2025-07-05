@@ -21,7 +21,7 @@ func main() {
 		SecureCookie:  true,
 		AccessExpiry:  1 * time.Hour,
 		RefreshExpiry: 24 * time.Hour,
-	})
+	}, "pub.pem", "key.pem")
 
 	p := providers.PasswordHandler{
 		UsernameValidate: nil,
@@ -35,8 +35,8 @@ func main() {
 		Ui: providers.PasswordUiDefault,
 	}
 
-	http.Handle("/auth/signup", httpwr.Logger(http.HandlerFunc(p.RegisterHandler)))
-	http.Handle("/auth/signin", httpwr.Logger(http.HandlerFunc(p.AuthorizeHandler)))
+	http.Handle("/auth/signup", httpwr.VerifyJwtAndInjectUserId(httpwr.Logger(http.HandlerFunc(p.RegisterHandler))))
+	http.Handle("/auth/signin", httpwr.VerifyJwtAndInjectUserId(httpwr.Logger(http.HandlerFunc(p.AuthorizeHandler))))
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)

@@ -15,14 +15,14 @@ type AuthContext struct {
 }
 
 func GetUser(r *http.Request) AuthContext {
-	userId := r.Context().Value(AuthContextKey)
-	if userId == nil {
+	user := r.Context().Value(AuthContextKey)
+	if user == nil {
 		return AuthContext{Valid: false}
 	}
-	user, ok := userId.(AuthContext)
+	userParsed, ok := user.(AuthContext)
 	if !ok {
 		return AuthContext{Valid: false}
 	}
-	user.Valid = true
-	return user
+	userParsed.Valid = true
+	return userParsed
 }

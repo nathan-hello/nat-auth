@@ -11,11 +11,12 @@ import (
 	"github.com/nathan-hello/nat-auth/storage"
 )
 
-func NewNatAuth(middleware func(next http.Handler) http.Handler, privateKeyPath, publicKeyPath, secret string) func() {
+func NewNatAuth(middleware func(next http.Handler) http.Handler, privateKeyPath, publicKeyPath, secret string) (middlewares func(next http.HandlerFunc) http.Handler, onClose func()) {
 
-	route := func(f http.HandlerFunc) http.Handler {
-		return password.MiddlewareVerifyJwtAndInjectUserId(middleware(http.HandlerFunc(f)))
+	middlewares = func(next http.HandlerFunc) http.Handler {
+		return password.MiddlewareVerifyJwtAndInjectUserId(middleware(next))
 	}
+
 	store := storage.NewValkey("127.0.0.1:6379")
 	password.InitJwt(password.AuthParams{
 		PublicKeyPath:  publicKeyPath,
@@ -52,16 +53,17 @@ func NewNatAuth(middleware func(next http.Handler) http.Handler, privateKeyPath,
 			Copy: pwui.DefaultPasswordUICopy(),
 		}),
 	}
-	http.Handle("/auth/register", route(p.SignUpHandler))
-	http.Handle("/auth/login", route(p.SignInHandler))
-	http.Handle("/auth/logout", route(p.SignOutHandler))
-	http.Handle("/auth/logout/everywhere", route(p.SignOutEverywhereHandler))
-	http.Handle("/auth/forgot", route(p.ForgotHandler))
-	http.Handle("/auth/change", route(p.ChangePassHandler))
-	http.Handle("/auth/totp", route(p.TotpHandler))
+	http.Handle("/auth/register", middlewares(p.SignUpHandler))
+	http.Handle("/auth/login", middlewares(p.SignInHandler))
+	http.Handle("/auth/logout", middlewares(p.SignOutHandler))
+	http.Handle("/auth/logout/everywhere", middlewares(p.SignOutEverywhereHandler))
+	http.Handle("/auth/forgot", middlewares(p.ForgotHandler))
+	http.Handle("/auth/change", middlewares(p.ChangePassHandler))
+	http.Handle("/auth/totp", middlewares(p.TotpHandler))
 
-	onClose := func() {
+	onClose = func() {
 		store.Client.Close()
 	}
-	return onClose
+
+	return middlewares, onClose
 }

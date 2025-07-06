@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	onClose := auth.NewNatAuth(loggerMiddleware, "pub.pem", "key.pem", "secret")
+	middlewares, onClose := auth.NewNatAuth(loggerMiddleware, "pub.pem", "key.pem", "secret")
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -26,6 +26,9 @@ func main() {
 		fmt.Printf("Valkey client closed")
 		os.Exit(0)
 	}()
+
+	http.Handle("/", middlewares(HomeHandler))
+	http.Handle("/protected", middlewares(ProtectedHandler))
 
 	fmt.Println("Server starting on :3000")
 	if err := http.ListenAndServe(":3000", nil); err != nil {

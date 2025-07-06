@@ -30,6 +30,10 @@ type PasswordRedirects struct {
 	AfterSignOut  RedirectFunc
 }
 
+// type PasswordCallbacks struct {
+// 	SuccessTotp func(r *http.Request, state FormState)
+// }
+
 type PasswordHandler struct {
 	UsernameValidate func(s string) BitError
 	Database         storage.DbPassword

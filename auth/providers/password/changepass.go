@@ -3,13 +3,13 @@ package password
 import (
 	"net/http"
 
-	"github.com/nathan-hello/nat-auth/auth"
+	"github.com/nathan-hello/nat-auth/auth/user"
 	"github.com/nathan-hello/nat-auth/logger"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func (p PasswordHandler) ChangePassHandler(w http.ResponseWriter, r *http.Request) {
-	userId := auth.GetUserId(r)
+	userId := user.GetUser(r)
 	if !userId.Valid {
 		logger.Log("ChangePassHandler").Error("User context invalid: %#v", userId)
 		HttpRedirect(w, r, p.Redirects.AfterSignOut, "/")
@@ -40,7 +40,7 @@ func (p PasswordHandler) ChangePass_POST(w http.ResponseWriter, r *http.Request)
 	password := r.FormValue("password")
 	repeated := r.FormValue("repeated")
 
-	err := p.ChangePass_Work(auth.GetUserId(r).Username, password, repeated)
+	err := p.ChangePass_Work(user.GetUser(r).Username, password, repeated)
 	if err > 0 {
 		w.Write(p.Ui.HtmlPageChange(r, FormState{Errors: err}))
 		return

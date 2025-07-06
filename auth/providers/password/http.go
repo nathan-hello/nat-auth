@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwe"
 
-	"github.com/nathan-hello/nat-auth/auth"
+	"github.com/nathan-hello/nat-auth/auth/user"
 	"github.com/nathan-hello/nat-auth/logger"
 )
 
@@ -153,12 +153,12 @@ func MiddlewareVerifyJwtAndInjectUserId(next http.Handler) http.Handler {
 			return
 		}
 
-		val := auth.AuthContext{
+		val := user.AuthContext{
 			Subject:  claims.Subject,
 			Username: claims.UserName,
 		}
 
-		wrapReq := r.WithContext(context.WithValue(r.Context(), auth.AuthContextKey, val))
+		wrapReq := r.WithContext(context.WithValue(r.Context(), user.AuthContextKey, val))
 		next.ServeHTTP(w, wrapReq)
 	})
 }

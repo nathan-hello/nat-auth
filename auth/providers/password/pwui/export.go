@@ -3,6 +3,7 @@ package pwui
 import (
 	"bytes"
 	"net/http"
+	"reflect"
 
 	"github.com/nathan-hello/nat-auth/auth/providers/password"
 	"github.com/nathan-hello/nat-auth/logger"
@@ -20,7 +21,6 @@ type PasswordUICopy struct {
 	ForgotPrompt        string
 	CodeResend          string
 	CodeReturn          string
-	Logo                string
 	InputEmail          string
 	InputPassword       string
 	InputCode           string
@@ -29,14 +29,8 @@ type PasswordUICopy struct {
 	TotpTest            string
 	TotpSkip            string
 	EmailPlaceholder    string
-	EmailInvalid        string
-	CodeInfo            string
-	CodePlaceholder     string
-	CodeInvalid         string
-	CodeSent            string
-	CodeResent          string
-	CodeDidntGet        string
-	ButtonSkip          string
+	TotpInfo            string
+	TotpPlaceholder     string
 	Error               map[password.BitError]string
 }
 
@@ -77,56 +71,52 @@ func DefaultPasswordUICopy() PasswordUICopy {
 		ForgotPrompt:        "Forgot password?",
 		CodeResend:          "Resend code",
 		CodeReturn:          "Back to",
-		Logo:                "A",
 		InputEmail:          "Email",
 		InputPassword:       "Password",
 		InputCode:           "Code",
 		InputRepeat:         "Repeat password",
 		ButtonContinue:      "Continue",
-		ButtonSkip:          "Skip",
 		EmailPlaceholder:    "Email",
-		EmailInvalid:        "Email is not valid",
-		CodeInfo:            "We'll send a pin code to your email.",
-		CodePlaceholder:     "Code",
-		CodeInvalid:         "Invalid code",
-		CodeSent:            "Code sent.",
-		CodeResent:          "Code resent.",
-		CodeDidntGet:        "Didn't get code?",
+		TotpInfo:            "Use your TOTP to auth.",
+		TotpPlaceholder:     "Code",
 		Error: map[password.BitError]string{
-			password.ErrInvalidCode:           "Code is incorrect.",
-			password.ErrInvalidEmail:          "Email is not valid.",
-			password.ErrInvalidPassword:       "Password is incorrect.",
-			password.ErrPasswordMismatch:      "Passwords do not match.",
 			password.ErrPasswordTooLong:       "Password is too long.",
 			password.ErrPasswordTooShort:      "Password is too short.",
 			password.ErrUsernameInvalidFormat: "Username is not valid.",
 			password.ErrUsernameTaken:         "Username is already taken.",
 			password.ErrUsernameTooLong:       "Username is too long.",
 			password.ErrUsernameTooShort:      "Username is too short.",
+			password.ErrBadLogin:              "Invalid login credentials.",
+			password.ErrPassNoMatch:           "Passwords do not match.",
 			password.ErrInternalServer:        "Internal server error.",
 			password.ErrTOTPMismatch:          "TOTP does not match.",
 		},
 	}
 }
 
+func IsZero[T any](x T) bool {
+	// *new(T) is the zero value of T
+	return reflect.DeepEqual(x, *new(T))
+}
+
 type DefaultPasswordUiParams struct {
-	Theme *Theme
-	Copy  *PasswordUICopy
+	Theme Theme
+	Copy  PasswordUICopy
 }
 
 func DefaultPasswordUi(params DefaultPasswordUiParams) password.PasswordUi {
 
 	var copy PasswordUICopy
 	var theme Theme
-	if params.Theme == nil {
+	if IsZero(params.Theme) {
 		theme = DefaultPasswordUITheme()
 	} else {
-		theme = *params.Theme
+		theme = params.Theme
 	}
-	if params.Copy == nil {
+	if IsZero(params.Copy) {
 		copy = DefaultPasswordUICopy()
 	} else {
-		copy = *params.Copy
+		copy = params.Copy
 	}
 
 	logger.Log("DefaultPasswordUi").Info("theme: %#v", theme)

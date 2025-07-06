@@ -3,8 +3,8 @@ package password
 import (
 	"net/http"
 
-	"github.com/nathan-hello/nat-auth/auth"
 	"github.com/nathan-hello/nat-auth/auth/providers/totp"
+	"github.com/nathan-hello/nat-auth/auth/user"
 )
 
 func (p PasswordHandler) TotpHandler(w http.ResponseWriter, r *http.Request) {
@@ -20,7 +20,7 @@ func (p PasswordHandler) TotpHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p PasswordHandler) Totp_GET(w http.ResponseWriter, r *http.Request) {
-	user := auth.GetUserId(r)
+	user := user.GetUser(r)
 	if !user.Valid {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -55,7 +55,7 @@ func (p PasswordHandler) Totp_GET(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p PasswordHandler) Totp_POST(w http.ResponseWriter, r *http.Request) {
-	user := auth.GetUserId(r)
+	user := user.GetUser(r)
 	if !user.Valid {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return

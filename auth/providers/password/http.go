@@ -80,7 +80,6 @@ func CookieDecryptJwt(r *http.Request) (string, string, error) {
 	var at []byte
 	var rt []byte
 	if pk != nil {
-		logger.Log("jwt").Debug("BINGUS")
 		ajwe, err := jwe.ParseEncrypted(access.Value)
 		if err != nil {
 			return "", "", err
@@ -149,11 +148,17 @@ func MiddlewareVerifyJwtAndInjectUserId(next http.Handler) http.Handler {
 
 		claims, err := ParseToken(access)
 		if err != nil {
+			logger.Log("middleware").Error("parsed claims %#v %s", claims, err)
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		wrapReq := r.WithContext(context.WithValue(r.Context(), auth.UserIdContextKey, claims.UserId))
+		val := auth.AuthContext{
+			Subject:  claims.Subject,
+			Username: claims.UserName,
+		}
+
+		wrapReq := r.WithContext(context.WithValue(r.Context(), auth.AuthContextKey, val))
 		next.ServeHTTP(w, wrapReq)
 	})
 }

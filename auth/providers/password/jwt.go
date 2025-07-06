@@ -11,14 +11,15 @@ import (
 
 type CustomClaims struct {
 	jwt.RegisteredClaims
-	UserId  string `json:"sub"`
-	JwtType string `json:"jwt_type"`
-	Family  string `json:"family"`
+	JwtType  string `json:"jwt_type"`
+	Family   string `json:"family"`
+	UserName string `json:"user"`
 }
 
 type JwtParams struct {
-	UserId string `json:"sub"`
-	Family string `json:"family"`
+	Subject  string `json:"sub"`
+	Family   string `json:"family"`
+	UserName string `json:"user"`
 }
 
 func NewTokenPair(j JwtParams) (string, string, string, error) {
@@ -34,9 +35,10 @@ func NewTokenPair(j JwtParams) (string, string, string, error) {
 		"exp":      time.Now().Add(LocalConfig().AccessExpiry).Unix(),
 		"iat":      time.Now().Unix(),
 		"iss":      "nat-auth",
-		"sub":      j.UserId,
+		"sub":      j.Subject,
 		"jwt_type": "access_token",
 		"family":   j.Family,
+		"user":     j.UserName,
 	}
 
 	access := jwt.NewWithClaims(jwt.SigningMethodHS256, &ac)
@@ -50,9 +52,10 @@ func NewTokenPair(j JwtParams) (string, string, string, error) {
 		"exp":      time.Now().Add(LocalConfig().RefreshExpiry).Unix(),
 		"iat":      time.Now().Unix(),
 		"iss":      "nat-auth",
-		"sub":      j.UserId,
+		"sub":      j.Subject,
 		"jwt_type": "refresh_token",
 		"family":   j.Family,
+		"user":     j.UserName,
 	}
 
 	refresh := jwt.NewWithClaims(jwt.SigningMethodHS256, &rc)
@@ -86,12 +89,15 @@ func ParseToken(t string) (CustomClaims, error) {
 		return claims, ErrJwtInvalid
 	}
 
-	if claims.UserId == "" {
+	if claims.Subject == "" {
+		return claims, ErrJwtInvalid
+	}
+
+	if claims.UserName == "" {
 		return claims, ErrJwtInvalid
 	}
 
 	return claims, nil
-
 }
 
 func ParseOrRefreshToken(a string, r string) (string, string, error) {
@@ -119,7 +125,7 @@ func ParseOrRefreshToken(a string, r string) (string, string, error) {
 	}
 
 	// sweet, a good refresh jwt. let's make a new pair using the OLD family.
-	access, refresh, _, err := NewTokenPair(JwtParams{UserId: refreshClaims.UserId, Family: refreshClaims.Family})
+	access, refresh, _, err := NewTokenPair(JwtParams{Subject: refreshClaims.Subject, Family: refreshClaims.Family, UserName: refreshClaims.UserName})
 	if err != nil {
 		return "", "", err
 	}

@@ -119,6 +119,27 @@ templ renderErrs(errors password.BitError) {
 	}
 }
 
+templ ChangePassForm(errors password.BitError) {
+	<form class="text-2xl gap-y-4 flex flex-col max-w-screen-md mx-auto" hx-post="/auth/changepass" hx-target="this">
+		<p class="font-semibold text-gray-100 text-center text-2xl mx-auto  border-b border-white w-min whitespace-nowrap px-20 pb-2 mb-6">
+			Create an account
+		</p>
+		@passwordBox(len(errors.GetErrorsByCategory("password")) > 0)
+		@repeated(len(errors.GetErrorsByCategory("repeated")) > 0)
+		@submitFormButton()
+		<div class="py-2"></div>
+		@renderErrs(errors)
+	</form>
+}
+
+templ ChangePass(errors password.BitError) {
+	@layout(LayoutParams{TabTitle: "Change Password", NavTitle: "Bear Auth"}, ClientState{Username: ""}) {
+		<div class="pt-8">
+			@ChangePassForm(errors)
+		</div>
+	}
+}
+
 templ SignUpForm(previousUsername string, errors password.BitError) {
 	<form class="text-2xl gap-y-4 flex flex-col max-w-screen-md mx-auto" hx-post="/auth/signup" hx-target="this">
 		<p class="font-semibold text-gray-100 text-center text-2xl mx-auto  border-b border-white w-min whitespace-nowrap px-20 pb-2 mb-6">

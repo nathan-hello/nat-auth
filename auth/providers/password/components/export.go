@@ -28,4 +28,14 @@ var PasswordUiDefault = password.PasswordUi{
 		SignInForm(state.Username, state.Errors).Render(r.Context(), &buf)
 		return buf.Bytes()
 	},
+	HtmlPageChange: func(r *http.Request) []byte {
+		var buf bytes.Buffer
+		ChangePass(0).Render(r.Context(), &buf)
+		return buf.Bytes()
+	},
+	HtmlFormChange: func(r *http.Request, state password.FormState) []byte {
+		var buf bytes.Buffer
+		ChangePassForm(state.Errors).Render(r.Context(), &buf)
+		return buf.Bytes()
+	},
 }

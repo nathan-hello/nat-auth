@@ -9,7 +9,8 @@ type DbJwt interface {
 
 type DbPassword interface {
 	DbJwt
-	InsertUser(username string, password string, subject string) error
+	InsertUser(username string, password string) error
+	InsertSubject(username string, subject string) error
 	SelectSubjectByUsername(username string) (string, error)
 	SelectPasswordByUsername(username string) (string, error)
 }

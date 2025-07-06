@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -10,6 +11,7 @@ import (
 	"github.com/nathan-hello/nat-auth/auth"
 	"github.com/nathan-hello/nat-auth/auth/providers/password"
 	pwui "github.com/nathan-hello/nat-auth/auth/providers/password/components"
+	"github.com/nathan-hello/nat-auth/logger"
 	"github.com/nathan-hello/nat-auth/storage"
 
 	"github.com/nathan-hello/nat-auth/test/app/components"
@@ -22,6 +24,8 @@ func main() {
 		PrivateKeyPath: "key.pem",
 		Secret:         "secret",
 	})
+	logger.LogLevel(slog.LevelDebug)
+	logger.LogNewOutput(os.Stdout)
 
 	p := password.PasswordHandler{
 		Database: store,
@@ -33,6 +37,7 @@ func main() {
 	http.Handle("/auth/signin", newRoute(p.SignInHandler))
 	http.Handle("/auth/signout", newRoute(p.SignOutHandler))
 	http.Handle("/auth/signoutall", newRoute(p.SignOutEverywhereHandler))
+	http.Handle("/auth/changepass", newRoute(p.ChangePassHandler))
 	http.Handle("/protected", newRoute(ProtectedHandler))
 
 	sigChan := make(chan os.Signal, 1)
@@ -53,27 +58,27 @@ func main() {
 }
 
 func newRoute(f http.HandlerFunc) http.Handler {
-	return password.MiddlewareVerifyJwtAndInjectUserId(logger(http.HandlerFunc(f)))
+	return password.MiddlewareVerifyJwtAndInjectUserId(loggerMiddleware(http.HandlerFunc(f)))
 }
 
 func ProtectedHandler(w http.ResponseWriter, r *http.Request) {
 	userId := auth.GetUserId(r)
-	if userId == "" {
-		fmt.Println("User ID not found in request context")
+	if userId.Subject == "" || userId.Username == "" {
+		logger.Log("app").Error("User ID not found in request context: %#v", userId)
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	components.Protected(userId).Render(r.Context(), w)
+	components.Protected(userId.Subject).Render(r.Context(), w)
 }
 
 // HomeHandler handles the home route
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	userId := auth.GetUserId(r)
 	w.Header().Set("Content-Type", "text/html")
-	components.Root(userId).Render(r.Context(), w)
+	components.Root(userId.Subject).Render(r.Context(), w)
 }
 
-func logger(next http.Handler) http.Handler {
+func loggerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("request: %s %s\n", r.Method, r.URL.Path)
 		next.ServeHTTP(w, r)

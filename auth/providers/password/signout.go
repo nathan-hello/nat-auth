@@ -25,8 +25,8 @@ func (p PasswordHandler) SignOutEverywhereHandler(w http.ResponseWriter, r *http
 		if done := HttpRedirect(w, r, p.Redirects.BeforeSignOut, ""); done {
 			return
 		}
-		subject := auth.GetUserId(r)
-		err := p.Database.InvalidateUser(subject)
+		Ctx := auth.GetUserId(r)
+		err := p.Database.InvalidateUser(Ctx.Subject)
 		if err != nil {
 			logger.Log("signout").Error("SignOutEverywhereHandler: could not update db err: %#v err.Error(): %s", err, err.Error())
 		}

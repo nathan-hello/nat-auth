@@ -59,10 +59,7 @@ func (p PasswordHandler) SignUp_Work(username, password, repeated string) (strin
 	errs = errs.Add(p.UsernameValidate(username))
 	errs = errs.Add(passwordValidate(password))
 	if password != repeated {
-		errs = errs.Add(ErrPassNoMatch)
-	}
-	if errs.Count() > 0 {
-		return "", "", errs
+		return "", "", ErrPassNoMatch
 	}
 
 	// Does username already exist?
@@ -87,14 +84,21 @@ func (p PasswordHandler) SignUp_Work(username, password, repeated string) (strin
 		return "", "", errs
 	}
 
-	err = p.Database.InsertUser(username, string(hashedPassword), subject)
+	err = p.Database.InsertUser(username, string(hashedPassword))
 	if err != nil {
 		logger.Log("post-register").Error("could not insert user: %s, error: %#v", username, err.Error())
 		errs = errs.Add(ErrDbInsertUser)
 		return "", "", errs
 	}
 
-	access, refresh, family, err := NewTokenPair(JwtParams{UserId: subject})
+	err = p.Database.InsertSubject(username, subject)
+	if err != nil {
+		logger.Log("post-register").Error("could not insert user: %s, error: %#v", username, err.Error())
+		errs = errs.Add(ErrDbInsertUser)
+		return "", "", errs
+	}
+
+	access, refresh, family, err := NewTokenPair(JwtParams{Subject: subject, UserName: username})
 	if err != nil {
 		logger.Log("post-register").Error("could not create token pair: %#v", err)
 		return "", "", ErrParsingJwt

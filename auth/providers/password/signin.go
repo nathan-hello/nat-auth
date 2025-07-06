@@ -60,7 +60,7 @@ func (p PasswordHandler) SignIn_Work(username, password string) (string, string,
 		return "", "", ErrDbSelectUserSubject
 	}
 
-	access, refresh, family, err := NewTokenPair(JwtParams{UserId: subject})
+	access, refresh, family, err := NewTokenPair(JwtParams{Subject: subject, UserName: username})
 	if err != nil {
 		return "", "", ErrParsingJwt
 	}

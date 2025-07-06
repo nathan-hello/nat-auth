@@ -17,7 +17,7 @@ type VK struct {
 	Client valkey.Client
 }
 
-func  NewValkey(addr string) *VK {
+func NewValkey(addr string) *VK {
 	var err error
 	client, err := valkey.NewClient(valkey.ClientOption{InitAddress: []string{addr}})
 	if err != nil {
@@ -79,7 +79,6 @@ func (vk *VK) SelectFamily(userId, family string) bool {
 	}
 
 	var val bool
-
 	switch valid {
 	case "true":
 		val = true
@@ -92,19 +91,25 @@ func (vk *VK) SelectFamily(userId, family string) bool {
 	return val
 }
 
-func (vk *VK) InsertUser(username string, password string, subject string) error {
+func (vk *VK) InsertSubject(username string, subject string) error {
+	ctx := context.Background()
+
+	joined := strings.Join([]string{"username", username, "subject"}, US)
+	err := vk.Client.Do(ctx, vk.Client.B().Set().Key(joined).Value(subject).Build()).Error()
+	if err != nil {
+		logger.Log("valkey").Error("InsertUser: could not set subject: %#v", err)
+		return err
+	}
+	return nil
+}
+
+func (vk *VK) InsertUser(username string, password string) error {
 	ctx := context.Background()
 
 	joined := strings.Join([]string{"username", username, "password"}, US)
-	err := vk.Client.Do(ctx, vk.Client.B().Set().Key(joined).Value(password).Nx().Build()).Error()
+	err := vk.Client.Do(ctx, vk.Client.B().Set().Key(joined).Value(password).Build()).Error()
 	if err != nil {
 		logger.Log("valkey").Error("InsertUser: could not set password: %#v", err)
-		return err
-	}
-	joined = strings.Join([]string{"username", username, "subject"}, US)
-	err = vk.Client.Do(ctx, vk.Client.B().Set().Key(joined).Value(subject).Nx().Build()).Error()
-	if err != nil {
-		logger.Log("valkey").Error("InsertUser: could not set subject: %#v", err)
 		return err
 	}
 	return nil

@@ -4,19 +4,25 @@ import (
 	"net/http"
 )
 
-type UserIdContextType struct{}
+type AuthContextType struct{}
 
-var UserIdContextKey = UserIdContextType{}
+var AuthContextKey = AuthContextType{}
 
-func GetUserId(r *http.Request) string {
-	userId := r.Context().Value(UserIdContextKey)
+type AuthContext struct {
+	Subject  string
+	Username string
+	Valid    bool
+}
+
+func GetUserId(r *http.Request) AuthContext {
+	userId := r.Context().Value(AuthContextKey)
 	if userId == nil {
-		return ""
+		return AuthContext{Valid: false}
 	}
-	userStr, ok := userId.(string)
+	user, ok := userId.(AuthContext)
 	if !ok {
-		return ""
+		return AuthContext{Valid: false}
 	}
-
-	return userStr
+	user.Valid = true
+	return user
 }

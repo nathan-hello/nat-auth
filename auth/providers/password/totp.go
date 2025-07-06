@@ -37,7 +37,7 @@ func (p PasswordHandler) Totp_GET(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	png, err := totp.QRTOTP(secret, user.Subject)
+	png, err := totp.QRTOTP(secret, user.Username)
 	if err != nil {
 		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: ErrInternalServer}, nil, "/", ""))
 		return

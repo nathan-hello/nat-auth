@@ -7,11 +7,11 @@ import (
 	qrcode "github.com/skip2/go-qrcode"
 )
 
-func QRTOTP(secret, subject string) ([]byte, error) {
+func QRTOTP(secret, username string) ([]byte, error) {
 	var png []byte
 	issuer := "nat-auth"
 	formated := fmt.Sprintf("otpauth://totp/%s:%s?secret=%s&issuer=%s&algorithm=SHA256&digits=%d&period=%d",
-		issuer, subject, secret, issuer, DefaultLength, DefaultTimePeriod)
+		issuer, username, secret, issuer, DefaultLength, DefaultTimePeriod)
 	png, err := qrcode.Encode(formated, qrcode.Medium, 256)
 	if err != nil {
 		return nil, err

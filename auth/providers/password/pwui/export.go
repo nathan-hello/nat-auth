@@ -25,9 +25,17 @@ type PasswordUICopy struct {
 	InputCode           string
 	InputRepeat         string
 	ButtonContinue      string
+	EmailPlaceholder    string
+	EmailInvalid        string
+	CodeInfo            string
+	CodePlaceholder     string
+	CodeInvalid         string
+	CodeSent            string
+	CodeResent          string
+	CodeDidntGet        string
+	ButtonSkip          string
+	Error               map[password.BitError]string
 }
-
-type PasswordUIErrorCopy map[password.BitError]string
 
 func DefaultPasswordUITheme() Theme {
 	return Theme{
@@ -39,23 +47,6 @@ func DefaultPasswordUITheme() Theme {
 			Family: "Varela Round, sans-serif",
 			Scale:  "1",
 		},
-	}
-}
-
-func DefaultPasswordUIErrorCopy() PasswordUIErrorCopy {
-	return PasswordUIErrorCopy{
-		password.ErrInvalidCode:           "Code is incorrect.",
-		password.ErrInvalidEmail:          "Email is not valid.",
-		password.ErrInvalidPassword:       "Password is incorrect.",
-		password.ErrPasswordMismatch:      "Passwords do not match.",
-		password.ErrPasswordTooLong:       "Password is too long.",
-		password.ErrPasswordTooShort:      "Password is too short.",
-		password.ErrUsernameInvalidFormat: "Username is not valid.",
-		password.ErrUsernameTaken:         "Username is already taken.",
-		password.ErrUsernameTooLong:       "Username is too long.",
-		password.ErrUsernameTooShort:      "Username is too short.",
-		password.ErrInternalServer:        "Internal server error.",
-		password.ErrTOTPMismatch:          "TOTP does not match.",
 	}
 }
 
@@ -78,19 +69,40 @@ func DefaultPasswordUICopy() PasswordUICopy {
 		InputCode:           "Code",
 		InputRepeat:         "Repeat password",
 		ButtonContinue:      "Continue",
+		ButtonSkip:          "Skip",
+		EmailPlaceholder:    "Email",
+		EmailInvalid:        "Email is not valid",
+		CodeInfo:            "We'll send a pin code to your email.",
+		CodePlaceholder:     "Code",
+		CodeInvalid:         "Invalid code",
+		CodeSent:            "Code sent.",
+		CodeResent:          "Code resent.",
+		CodeDidntGet:        "Didn't get code?",
+		Error: map[password.BitError]string{
+			password.ErrInvalidCode:           "Code is incorrect.",
+			password.ErrInvalidEmail:          "Email is not valid.",
+			password.ErrInvalidPassword:       "Password is incorrect.",
+			password.ErrPasswordMismatch:      "Passwords do not match.",
+			password.ErrPasswordTooLong:       "Password is too long.",
+			password.ErrPasswordTooShort:      "Password is too short.",
+			password.ErrUsernameInvalidFormat: "Username is not valid.",
+			password.ErrUsernameTaken:         "Username is already taken.",
+			password.ErrUsernameTooLong:       "Username is too long.",
+			password.ErrUsernameTooShort:      "Username is too short.",
+			password.ErrInternalServer:        "Internal server error.",
+			password.ErrTOTPMismatch:          "TOTP does not match.",
+		},
 	}
 }
 
 type DefaultPasswordUiParams struct {
-	Theme     *Theme
-	Copy      *PasswordUICopy
-	ErrorCopy *PasswordUIErrorCopy
+	Theme *Theme
+	Copy  *PasswordUICopy
 }
 
 func DefaultPasswordUi(params DefaultPasswordUiParams) password.PasswordUi {
 
 	var copy PasswordUICopy
-	var errCopy PasswordUIErrorCopy
 	var theme Theme
 	if params.Theme == nil {
 		theme = DefaultPasswordUITheme()
@@ -98,24 +110,21 @@ func DefaultPasswordUi(params DefaultPasswordUiParams) password.PasswordUi {
 	if params.Copy == nil {
 		copy = DefaultPasswordUICopy()
 	}
-	if params.ErrorCopy == nil {
-		errCopy = DefaultPasswordUIErrorCopy()
-	}
 
 	return password.PasswordUi{
 		HtmlPageSignUp: func(r *http.Request, state password.FormState) []byte {
 			var buf bytes.Buffer
-			Register(theme, copy, errCopy, state).Render(r.Context(), &buf)
+			Register(theme, copy, state).Render(r.Context(), &buf)
 			return buf.Bytes()
 		},
 		HtmlPageSignIn: func(r *http.Request, state password.FormState) []byte {
 			var buf bytes.Buffer
-			Login(theme, copy, errCopy, state).Render(r.Context(), &buf)
+			Login(theme, copy, state).Render(r.Context(), &buf)
 			return buf.Bytes()
 		},
 		HtmlPageChange: func(r *http.Request, state password.FormState) []byte {
 			var buf bytes.Buffer
-			Change(theme, copy, errCopy, state).Render(r.Context(), &buf)
+			Change(theme, copy, state).Render(r.Context(), &buf)
 			return buf.Bytes()
 		},
 	}

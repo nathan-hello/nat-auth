@@ -2,32 +2,18 @@ package pwui
 
 import "github.com/nathan-hello/nat-auth/auth/providers/password"
 
-templ Register(theme Theme, copy PasswordUICopy, errCopy PasswordUIErrorCopy, state password.FormState, err password.BitError) {
+templ Register(theme Theme, copy PasswordUICopy, state password.FormState) {
 	@layout(theme) {
 		<form data-component="form" method="post">
-			if err != 0 {
-				@formAlert(errCopy, err, "danger")
+			if state.Errors != 0 {
+				@formAlert(copy, state.Errors, "danger")
 			}
-			if state.Type == "start" {
-				@registerForm(copy, errCopy, state, err)
-			}
-			if state.Type == "code" {
-				@codeForm(copy)
-			}
-		</form>
-	}
-}
-
-// 1) State is start. User puts in email, password, repeat.
-//    - User is actually made in DB. TOTP is optional.
-// 2) State is code. User either puts in TOTP or skips.
-templ registerForm(copy PasswordUICopy, errorCopy PasswordUIErrorCopy, state password.FormState, err password.BitError) {
 	<input type="hidden" name="action" value="register"/>
 	<input
 		data-component="input"
-		autofocus={ err == 0 || err.IsUsernameError() }
+		autofocus={ state.Errors == 0 || state.Errors.IsUsernameError() }
 		name="email"
-		if state.Username != "" && !err.IsUsernameError() {
+		if state.Username != "" && !state.Errors.IsUsernameError() {
 			value={ state.Username }
 		}
 		required
@@ -35,7 +21,7 @@ templ registerForm(copy PasswordUICopy, errorCopy PasswordUIErrorCopy, state pas
 	/>
 	<input
 		data-component="input"
-		autofocus={ err.IsPasswordError() }
+		autofocus={ state.Errors.IsPasswordError() }
 		type="password"
 		name="password"
 		placeholder={ copy.InputPassword }
@@ -47,7 +33,7 @@ templ registerForm(copy PasswordUICopy, errorCopy PasswordUIErrorCopy, state pas
 		type="password"
 		name="repeat"
 		required
-		autofocus={ err.IsRepeatedError() }
+		autofocus={ state.Errors.IsRepeatedError() }
 		placeholder={ copy.InputRepeat }
 		autocomplete="new-password"
 	/>
@@ -60,4 +46,6 @@ templ registerForm(copy PasswordUICopy, errorCopy PasswordUIErrorCopy, state pas
 			</a>
 		</span>
 	</div>
+		</form>
+	}
 }

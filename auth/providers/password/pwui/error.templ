@@ -2,15 +2,15 @@ package pwui
 
 import "github.com/nathan-hello/nat-auth/auth/providers/password"
 
-func getCopyFromBitError(copy PasswordUIErrorCopy, err password.BitError) []string {
+func getCopyFromBitError(copy PasswordUICopy, err password.BitError) []string {
 	var messages []string
 	for i:= 0; i < 64; i++ {
 		newErr := password.BitError(i << 1)
 		if err.Has(newErr) {
-			msg, ok := copy[newErr]
+			msg, ok := copy.Error[newErr]
 			if !ok {
-				defaultCopy := DefaultPasswordUIErrorCopy()
-				msg = defaultCopy[newErr]
+				defaultCopy := DefaultPasswordUICopy()
+				msg = defaultCopy.Error[newErr]
 			}
 			messages = append(messages, msg)
 		}
@@ -18,7 +18,7 @@ func getCopyFromBitError(copy PasswordUIErrorCopy, err password.BitError) []stri
 	return messages
 }
 
-templ formAlert(copy PasswordUIErrorCopy, err password.BitError, color string) {
+templ formAlert(copy PasswordUICopy, err password.BitError, color string) {
 	for _, message := range getCopyFromBitError(copy, err){
 		<div data-component="form-alert" data-color={ color }>
 			<svg

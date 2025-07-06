@@ -1,5 +1,10 @@
 package storage
 
+type DbTotp interface {
+	InsertSecret(userId, secret string) error
+	SelectSecret(userId, secret string) (string, error)
+}
+
 type DbJwt interface {
 	NewUserId() (string, error)
 	InsertFamily(userId, family string, value bool) error
@@ -8,6 +13,7 @@ type DbJwt interface {
 }
 
 type DbPassword interface {
+	DbTotp
 	DbJwt
 	InsertUser(username string, password string) error
 	InsertSubject(username string, subject string) error

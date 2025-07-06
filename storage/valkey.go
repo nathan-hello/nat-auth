@@ -103,6 +103,31 @@ func (vk *VK) InsertSubject(username string, subject string) error {
 	return nil
 }
 
+func (vk *VK) InsertSecret(subject, secret string) error {
+	ctx := context.Background()
+
+	joined := strings.Join([]string{"subject", subject, "secret"}, US)
+	err := vk.Client.Do(ctx, vk.Client.B().Set().Key(joined).Value(secret).Build()).Error()
+	if err != nil {
+		logger.Log("valkey").Error("InsertUser: could not set TOTP secret: %#v", err)
+		return err
+	}
+	return nil
+}
+
+func (vk *VK) SelectSecret(subject string) (string, error) {
+	joined := strings.Join([]string{"subject", subject, "secret"}, US)
+	ctx := context.Background()
+
+	subject, err := vk.Client.Do(ctx, vk.Client.B().Get().Key(joined).Build()).ToString()
+	if err != nil {
+		logger.Log("valkey").Error("SelectSubjectByUsername: could not find TOTP secret for subject %s err %#v err.Error(): %s", subject, err, err.Error())
+		return "", err
+	}
+
+	return subject, nil
+}
+
 func (vk *VK) InsertUser(username string, password string) error {
 	ctx := context.Background()
 

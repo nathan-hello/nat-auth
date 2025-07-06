@@ -19,9 +19,6 @@ const (
 	mask2              = 0x7f
 	mask3              = 0xff
 	passwordHashLength = 32
-	shift16            = 16
-	shift24            = 24
-	shift8             = 8
 	sumByteLength      = 8
 
 	// DefaultLength is the default length of the generated OTP code.
@@ -77,9 +74,9 @@ func GenerateTOTPCode(opts GenerateOptions) (string, int64, error) {
 
 	// http://tools.ietf.org/html/rfc4226#section-5.4
 	offset := sum[len(sum)-1] & mask1
-	value := int64(((int(sum[offset]) & mask2) << shift24) |
-		((int(sum[offset+1] & mask3)) << shift16) |
-		((int(sum[offset+2] & mask3)) << shift8) |
+	value := int64(((int(sum[offset]) & mask2) << 24) |
+		((int(sum[offset+1] & mask3)) << 16) |
+		((int(sum[offset+2] & mask3)) << 8) |
 		(int(sum[offset+3]) & mask3))
 
 	//nolint:gosec // If the user sets a size that high to get an overflow, it's on them.

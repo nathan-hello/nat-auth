@@ -97,7 +97,7 @@ func GenerateSecret() (string, error) {
 	), nil
 }
 
-func CheckTOTP(code, secret string) (bool, error) {
+func CheckTOTP(code, secret string) error {
 	now := time.Now().UTC()
 	opts := GenerateOptions{
 		Token:      secret,
@@ -113,12 +113,12 @@ func CheckTOTP(code, secret string) (bool, error) {
 
 		expected, _, err := GenerateTOTPCode(checkOpts)
 		if err != nil {
-			return false, err
+			return err
 		}
 
 		if subtle.ConstantTimeCompare([]byte(expected), []byte(code)) == 1 {
-			return true, nil
+			return nil
 		}
 	}
-	return false, nil
+	return fmt.Errorf("otp mismatch")
 }

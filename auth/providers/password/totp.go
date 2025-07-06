@@ -3,6 +3,7 @@ package password
 import (
 	"net/http"
 
+	"github.com/nathan-hello/nat-auth/auth"
 	"github.com/nathan-hello/nat-auth/auth/providers/totp"
 )
 
@@ -24,28 +25,37 @@ func (p PasswordHandler) TotpHandler(w http.ResponseWriter, r *http.Request) {
 func (p PasswordHandler) Totp_GET(w http.ResponseWriter, r *http.Request) {
 	secret, err := totp.GenerateSecret()
 	if err != nil {
-		w.Write(p.Ui.HtmlFormTotp(r, FormState{Errors: ErrInternalServer}))
+		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: ErrInternalServer}, nil))
 	}
+	err = p.Database.InsertSecret(auth.GetUserId(r).Subject, secret)
+	if err != nil {
+		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: ErrInternalServer}, nil))
+	}
+
 	png, err := totp.QRTOTP(secret)
-	w.Write(p.Ui.HtmlPageTotp(r, FormState{Username: png}))
+	if err != nil {
+		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: ErrInternalServer}, nil))
+	}
+	w.Write(p.Ui.HtmlPageTotp(r, FormState{}, png))
 }
 
 func (p PasswordHandler) Totp_POST(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		w.Write(p.Ui.HtmlFormTotp(r, FormState{Errors: ErrInternalServer}))
+		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: ErrInternalServer}, nil))
 		return
 	}
 	otp := r.FormValue("otp")
 
-	png, err := p.Totp_Work(otp)
-	if err > 0 {
-		w.Write(p.Ui.HtmlFormTotp(r, FormState{Username: png, Errors: err}))
+	secret, err := p.Database.SelectSecret(auth.GetUserId(r).Subject)
+	if err != nil {
+		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: ErrInternalServer}, nil))
+		return
+	}
+
+	if totp.CheckTOTP(otp, secret) != nil {
+		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: ErrInternalServer}, nil))
 		return
 	}
 
 	HttpRedirect(w, r, p.Redirects.AfterTotp, "/")
-}
-
-func (p PasswordHandler) Totp_Work(otp string) (string, BitError) {
-
 }

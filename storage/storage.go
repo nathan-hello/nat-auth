@@ -2,7 +2,7 @@ package storage
 
 type DbTotp interface {
 	InsertSecret(userId, secret string) error
-	SelectSecret(userId, secret string) (string, error)
+	SelectSecret(userId string) (string, error)
 }
 
 type DbJwt interface {

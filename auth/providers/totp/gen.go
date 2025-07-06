@@ -3,7 +3,9 @@ package totp
 
 import (
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base32"
 	"encoding/binary"
 	"fmt"
@@ -55,7 +57,7 @@ func (opts *GenerateOptions) normalise() {
 }
 
 // GenerateOTPCode generates an N digit TOTP from the secret Token.
-func GenerateOTPCode(opts GenerateOptions) (string, int64, error) {
+func GenerateTOTPCode(opts GenerateOptions) (string, int64, error) {
 	opts.normalise()
 
 	timer := uint64(math.Floor(float64(opts.When.Unix()) / float64(opts.TimePeriod)))
@@ -88,6 +90,38 @@ func GenerateOTPCode(opts GenerateOptions) (string, int64, error) {
 	return fmt.Sprintf(format, modulo), remainingTime, nil
 }
 
-func GenerateSecret() {}
+func GenerateSecret() (string, error) {
+	secret := make([]byte, passwordHashLength)
+	if _, err := rand.Read(secret); err != nil {
+		return "", err
+	}
+	return strings.ToUpper(
+		base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(secret),
+	), nil
+}
 
-func CheckOTP() {}
+func CheckTOTP(code, secret string) (bool, error) {
+	now := time.Now().UTC()
+	opts := GenerateOptions{
+		Token:      secret,
+		When:       now,
+		TimePeriod: DefaultTimePeriod,
+		Length:     DefaultLength,
+	}
+
+	// Allow two steps of clock drift in either direction.
+	for step := -2; step <= 2; step++ {
+		checkOpts := opts
+		checkOpts.When = now.Add(time.Duration(step*int(DefaultTimePeriod)) * time.Second)
+
+		expected, _, err := GenerateTOTPCode(checkOpts)
+		if err != nil {
+			return false, err
+		}
+
+		if subtle.ConstantTimeCompare([]byte(expected), []byte(code)) == 1 {
+			return true, nil
+		}
+	}
+	return false, nil
+}

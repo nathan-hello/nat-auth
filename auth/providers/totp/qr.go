@@ -1,6 +1,10 @@
 package totp
 
-import qrcode "github.com/skip2/go-qrcode"
+import (
+	"encoding/base64"
+
+	qrcode "github.com/skip2/go-qrcode"
+)
 
 func QRTOTP(secret string) ([]byte, error) {
 	var png []byte
@@ -8,5 +12,7 @@ func QRTOTP(secret string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return png, nil
+	dst := make([]byte, base64.StdEncoding.EncodedLen(len(png)))
+	base64.StdEncoding.Encode(dst, png)
+	return dst, nil
 }

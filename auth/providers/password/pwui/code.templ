@@ -5,7 +5,8 @@ import "github.com/nathan-hello/nat-auth/auth/providers/password"
 type CodeUICopy struct {
 	EmailPlaceholder string
 	EmailInvalid     string
-	ButtonContinue   string
+    ButtonContinue   string
+	ButtonSkip       string
 	CodeInfo         string
 	CodePlaceholder  string
 	CodeInvalid      string
@@ -20,6 +21,7 @@ func DefaultCodeUICopy() CodeUICopy {
 		EmailPlaceholder: "Email",
 		EmailInvalid:     "Email address is not valid",
 		ButtonContinue:   "Continue",
+		ButtonSkip:       "Continue",
 		CodeInfo:         "We'll send a pin code to your email.",
 		CodePlaceholder:  "Code",
 		CodeInvalid:      "Invalid code",

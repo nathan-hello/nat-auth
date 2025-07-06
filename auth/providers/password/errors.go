@@ -22,6 +22,7 @@ const (
 	ErrInvalidPassword       BitError = 1 << 11
 	ErrPasswordMismatch      BitError = 1 << 12
 	ErrValidationError       BitError = 1 << 13
+	ErrTOTPMismatch			 BitError = 1 << 14
 
 	// System errors (32-63)
 	ErrHashPassword          BitError = 1 << 32

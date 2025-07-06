@@ -104,17 +104,17 @@ func DefaultPasswordUi(params DefaultPasswordUiParams) password.PasswordUi {
 	return password.PasswordUi{
 		HtmlPageSignUp: func(r *http.Request, state password.FormState) []byte {
 			var buf bytes.Buffer
-			Register(theme, copy, errCopy, password.FormState{Type: "start"}, 0).Render(r.Context(), &buf)
+			Register(theme, copy, errCopy, state).Render(r.Context(), &buf)
 			return buf.Bytes()
 		},
 		HtmlPageSignIn: func(r *http.Request, state password.FormState) []byte {
 			var buf bytes.Buffer
-			Login(theme, copy, errCopy, password.FormState{Type: "start"}, 0).Render(r.Context(), &buf)
+			Login(theme, copy, errCopy, state).Render(r.Context(), &buf)
 			return buf.Bytes()
 		},
 		HtmlPageChange: func(r *http.Request, state password.FormState) []byte {
 			var buf bytes.Buffer
-			Change(theme, copy, errCopy, password.FormState{Type: "start"}, 0).Render(r.Context(), &buf)
+			Change(theme, copy, errCopy, state).Render(r.Context(), &buf)
 			return buf.Bytes()
 		},
 	}

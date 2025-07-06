@@ -12,12 +12,12 @@ func (p PasswordHandler) ChangePassHandler(w http.ResponseWriter, r *http.Reques
 	userId := auth.GetUserId(r)
 	if !userId.Valid {
 		logger.Log("ChangePassHandler").Error("User context invalid: %#v", userId)
-		Redirect(w, r, p.Redirects.BeforeChange, "/")
+		HttpRedirect(w, r, p.Redirects.BeforeChange, "/")
 		return
 	}
 
 	if r.Method == "GET" {
-		if done := Redirect(w, r, p.Redirects.BeforeChange, ""); done {
+		if done := HttpRedirect(w, r, p.Redirects.BeforeChange, ""); done {
 			return
 		}
 		p.ChangePass_GET(w, r)
@@ -49,7 +49,7 @@ func (p PasswordHandler) ChangePass_POST(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	Redirect(w, r, p.Redirects.AfterChange, "/")
+	HttpRedirect(w, r, p.Redirects.AfterChange, "/")
 }
 
 func (p PasswordHandler) ChangePass_Work(username, password, repeated string) BitError {

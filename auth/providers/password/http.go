@@ -163,7 +163,7 @@ func MiddlewareVerifyJwtAndInjectUserId(next http.Handler) http.Handler {
 	})
 }
 
-func Redirect(w http.ResponseWriter, r *http.Request, redirectFunc func(r *http.Request) string, defaultRoute string) bool {
+func HttpRedirect(w http.ResponseWriter, r *http.Request, redirectFunc func(r *http.Request) string, defaultRoute string) bool {
 	var route string
 
 	if redirectFunc != nil {

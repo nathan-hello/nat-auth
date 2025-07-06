@@ -36,7 +36,7 @@ type CodeState struct {
 	Resend bool
 }
 
-templ CodeUIStart(theme *Theme, copy CodeUICopy, errorCopy PasswordUIErrorCopy, mode string, err password.BitError) {
+templ CodeUIStart(theme Theme, copy CodeUICopy, errorCopy PasswordUIErrorCopy, mode string, err password.BitError) {
 	@layout(theme) {
 		<form data-component="form" method="post">
 			if err != 0 && err.Has(password.ErrInvalidEmail) {
@@ -58,7 +58,7 @@ templ CodeUIStart(theme *Theme, copy CodeUICopy, errorCopy PasswordUIErrorCopy, 
 	}
 }
 
-templ CodeUICode(theme *Theme, copy CodeUICopy, errorCopy PasswordUIErrorCopy, state CodeState, err password.BitError) {
+templ CodeUICode(theme Theme, copy CodeUICopy, errorCopy PasswordUIErrorCopy, state CodeState, err password.BitError) {
 	@layout(theme) {
 		<form data-component="form" class="form" method="post">
 			if err != 0 && err.Has(password.ErrInvalidCode) {

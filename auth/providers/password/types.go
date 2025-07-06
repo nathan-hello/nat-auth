@@ -9,6 +9,7 @@ import (
 type FormState struct {
 	Username string
 	Errors   BitError
+	Type     string // "start", "code", "update"
 }
 
 type PasswordUi struct {
@@ -20,15 +21,17 @@ type PasswordUi struct {
 	HtmlFormChange func(*http.Request, FormState) []byte
 }
 
+type RedirectFunc func(*http.Request) string
+
 type PasswordRedirects struct {
-	BeforeSignUp  func(*http.Request) string
-	BeforeSignIn  func(*http.Request) string
-	BeforeSignOut func(*http.Request) string
-	BeforeChange  func(*http.Request) string
-	AfterSignUp   func(*http.Request) string
-	AfterSignIn   func(*http.Request) string
-	AfterSignOut  func(*http.Request) string
-	AfterChange   func(*http.Request) string
+	BeforeSignUp  RedirectFunc
+	BeforeSignIn  RedirectFunc
+	BeforeSignOut RedirectFunc
+	BeforeChange  RedirectFunc
+	AfterSignUp   RedirectFunc
+	AfterSignIn   RedirectFunc
+	AfterSignOut  RedirectFunc
+	AfterChange   RedirectFunc
 }
 
 type PasswordHandler struct {

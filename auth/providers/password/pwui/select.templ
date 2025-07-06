@@ -103,7 +103,7 @@ templ selectContent(providers map[string]string, props *SelectProps) {
 	</div>
 }
 
-templ Select(theme *Theme, providers map[string]string, props *SelectProps) {
+templ Select(theme Theme, providers map[string]string, props *SelectProps) {
 	@layout(theme) {
 		@selectContent(providers, props)
 	}
@@ -111,7 +111,7 @@ templ Select(theme *Theme, providers map[string]string, props *SelectProps) {
 
 templ selectProviderButton(providerKey, providerType string, config SelectProviderConfig) {
 	<a
-		href={ templ.URL("/" + providerKey + "/authorize") }
+		href={ templ.URL("/auth/" + providerKey + "/login") }
 		data-component="button"
 		data-color="ghost"
 	>

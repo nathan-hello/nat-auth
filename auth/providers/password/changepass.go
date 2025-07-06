@@ -12,7 +12,7 @@ func (p PasswordHandler) ChangePassHandler(w http.ResponseWriter, r *http.Reques
 	userId := auth.GetUserId(r)
 	if !userId.Valid {
 		logger.Log("ChangePassHandler").Error("User context invalid: %#v", userId)
-		HttpRedirect(w, r, p.Redirects.BeforeChange, "/")
+		HttpRedirect(w, r, p.Redirects.AfterSignOut, "/")
 		return
 	}
 

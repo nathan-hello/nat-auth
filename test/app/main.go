@@ -8,14 +8,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/a-h/templ"
 	"github.com/nathan-hello/nat-auth/auth"
 	"github.com/nathan-hello/nat-auth/auth/providers/password"
-<<<<<<< HEAD
-=======
-	pwui "github.com/nathan-hello/nat-auth/auth/providers/password/components"
+	"github.com/nathan-hello/nat-auth/auth/providers/password/pwui"
 	"github.com/nathan-hello/nat-auth/logger"
->>>>>>> refs/remotes/origin/main
 	"github.com/nathan-hello/nat-auth/storage"
 
 	"github.com/nathan-hello/nat-auth/test/app/components"
@@ -31,18 +27,17 @@ func main() {
 	logger.LogLevel(slog.LevelDebug)
 	logger.LogNewOutput(os.Stdout)
 
-	templ.Raw()
-
 	p := password.PasswordHandler{
 		Database: store,
+		Ui:       pwui.DefaultPasswordUi(pwui.DefaultPasswordUiParams{}),
 	}
 
 	http.Handle("/", newRoute(HomeHandler))
-	http.Handle("/auth/signup", newRoute(p.SignUpHandler))
-	http.Handle("/auth/signin", newRoute(p.SignInHandler))
-	http.Handle("/auth/signout", newRoute(p.SignOutHandler))
-	http.Handle("/auth/signoutall", newRoute(p.SignOutEverywhereHandler))
-	http.Handle("/auth/changepass", newRoute(p.ChangePassHandler))
+	http.Handle("/auth/register", newRoute(p.SignUpHandler))
+	http.Handle("/auth/login", newRoute(p.SignInHandler))
+	http.Handle("/auth/logout", newRoute(p.SignOutHandler))
+	http.Handle("/auth/logout/everywhere", newRoute(p.SignOutEverywhereHandler))
+	http.Handle("/auth/change", newRoute(p.ChangePassHandler))
 	http.Handle("/protected", newRoute(ProtectedHandler))
 
 	sigChan := make(chan os.Signal, 1)

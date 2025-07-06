@@ -18,7 +18,7 @@ func getCopyFromBitError(copy PasswordUIErrorCopy, err password.BitError) []stri
 	return messages
 }
 
-templ FormAlert(copy PasswordUIErrorCopy, err password.BitError, color string) {
+templ formAlert(copy PasswordUIErrorCopy, err password.BitError, color string) {
 	for _, message := range getCopyFromBitError(copy, err){
 		<div data-component="form-alert" data-color={ color }>
 			<svg

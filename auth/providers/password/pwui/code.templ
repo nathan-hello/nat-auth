@@ -40,7 +40,7 @@ templ CodeUIStart(theme Theme, copy CodeUICopy, errorCopy PasswordUIErrorCopy, m
 	@layout(theme) {
 		<form data-component="form" method="post">
 			if err != 0 && err.Has(password.ErrInvalidEmail) {
-				@FormAlert(errorCopy, err, "danger")
+				@formAlert(errorCopy, err, "danger")
 			}
 			<input type="hidden" name="action" value="code"/>
 			<input
@@ -62,10 +62,10 @@ templ CodeUICode(theme Theme, copy CodeUICopy, errorCopy PasswordUIErrorCopy, st
 	@layout(theme) {
 		<form data-component="form" class="form" method="post">
 			if err != 0 && err.Has(password.ErrInvalidCode) {
-				@FormAlert(errorCopy, err, "danger")
+				@formAlert(errorCopy, err, "danger")
 			}
 			if state.Type == "code" {
-				@FormAlert(errorCopy, err, "success")
+				@formAlert(errorCopy, err, "success")
 			}
 			<input type="hidden" name="action" value="verify"/>
 			<input
@@ -112,3 +112,18 @@ func getCodeSentMessage(copy CodeUICopy, state CodeState) string {
 	}
 	return copy.CodeSent + state.Email
 } 
+
+templ codeForm(copy PasswordUICopy) {
+	<input type="hidden" name="action" value="verify"/>
+	<input
+		data-component="input"
+		autofocus
+		name="code"
+		minlength="6"
+		maxlength="6"
+		required
+		placeholder={ copy.InputCode }
+		autocomplete="one-time-code"
+	/>
+	<button data-component="button">{ copy.ButtonContinue }</button>
+}

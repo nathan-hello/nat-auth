@@ -13,12 +13,9 @@ type FormState struct {
 }
 
 type PasswordUi struct {
-	HtmlPageSignUp func(*http.Request) []byte
-	HtmlFormSignUp func(*http.Request, FormState) []byte
-	HtmlPageSignIn func(*http.Request) []byte
-	HtmlFormSignIn func(*http.Request, FormState) []byte
-	HtmlPageChange func(*http.Request) []byte
-	HtmlFormChange func(*http.Request, FormState) []byte
+	HtmlPageSignUp func(*http.Request, FormState) []byte
+	HtmlPageSignIn func(*http.Request, FormState) []byte
+	HtmlPageChange func(*http.Request, FormState) []byte
 }
 
 type RedirectFunc func(*http.Request) string

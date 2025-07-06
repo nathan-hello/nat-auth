@@ -1,0 +1,44 @@
+package pwui
+
+import "github.com/nathan-hello/nat-auth/auth/providers/password"
+
+templ Login(theme Theme, copy PasswordUICopy, errCopy PasswordUIErrorCopy, state password.FormState, err password.BitError) {
+	@layout(theme) {
+		<form data-component="form" method="post">
+			if err != 0 {
+				@formAlert(errCopy, err, "danger")
+			}
+			<input
+				data-component="input"
+				name="username"
+				required
+				placeholder={ copy.InputEmail }
+				autofocus={ err == 0 }
+				if state.Username != "" {
+					value={ state.Username }
+				}
+			/>
+			<input
+				data-component="input"
+				autofocus={ err != 0 && err.Has(password.ErrBadLogin) }
+				required
+				type="password"
+				name="password"
+				placeholder={ copy.InputPassword }
+				autocomplete="current-password"
+			/>
+			<button data-component="button">{ copy.ButtonContinue }</button>
+			<div data-component="form-footer">
+				<span>
+					{ copy.RegisterPrompt }
+					<a data-component="link" href="/auth/register">
+						{ copy.Register }
+					</a>
+				</span>
+				<a data-component="link" href="/auth/change">
+					{ copy.ChangePrompt }
+				</a>
+			</div>
+		</form>
+    }
+}

@@ -22,12 +22,12 @@ func (p PasswordHandler) SignInHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p PasswordHandler) SignIn_GET(w http.ResponseWriter, r *http.Request) {
-	w.Write(p.Ui.HtmlPageSignIn(r))
+	w.Write(p.Ui.HtmlPageSignIn(r, FormState{}))
 }
 
 func (p PasswordHandler) SignIn_POST(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		w.Write(p.Ui.HtmlFormSignIn(r, FormState{Errors: ErrInternalServer}))
+		w.Write(p.Ui.HtmlPageSignIn(r, FormState{Errors: ErrInternalServer}))
 		return
 	}
 	username := r.FormValue("username")
@@ -35,7 +35,7 @@ func (p PasswordHandler) SignIn_POST(w http.ResponseWriter, r *http.Request) {
 
 	access, refresh, err := p.SignIn_Work(username, password)
 	if err > 0 {
-		w.Write(p.Ui.HtmlFormSignIn(r, FormState{Errors: err}))
+		w.Write(p.Ui.HtmlPageSignIn(r, FormState{Errors: err}))
 		return
 	}
 

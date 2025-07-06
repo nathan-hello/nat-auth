@@ -5,11 +5,11 @@ import (
     "github.com/nathan-hello/nat-auth/auth/providers/password"
 )
 
-templ TOTPSetup(theme Theme, copy CodeUICopy, errorCopy PasswordUIErrorCopy, mode string, err password.BitError, qr []byte) {
+templ TOTPSetup(theme Theme, copy PasswordUICopy, mode string, err password.BitError, qr []byte) {
 	@layout(theme) {
 		<form data-component="form" method="post">
 			if err != 0 && err.Has(password.ErrTOTPMismatch) {
-				@formAlert(errorCopy, err, "danger")
+				@formAlert(copy, err, "danger")
 			}
 			<input type="hidden" name="action" value="code"/>
             <img src={ fmt.Sprintf("data:image/png;base64,%s", qr) }>

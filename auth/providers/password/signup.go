@@ -23,7 +23,7 @@ func (p PasswordHandler) SignUpHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p PasswordHandler) SignUp_GET(w http.ResponseWriter, r *http.Request) {
-	w.Write(p.Ui.HtmlPageSignUp(r))
+	w.Write(p.Ui.HtmlPageSignUp(r, FormState{}))
 }
 
 func (p PasswordHandler) SignUp_POST(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +41,7 @@ func (p PasswordHandler) SignUp_POST(w http.ResponseWriter, r *http.Request) {
 
 	if errs > 0 {
 		logger.Log("register-handler").Error("postRegister failed: %#v", errs.RenderUserMessages())
-		w.Write(p.Ui.HtmlFormSignUp(r, FormState{Username: username, Errors: errs}))
+		w.Write(p.Ui.HtmlPageSignUp(r, FormState{Username: username, Errors: errs}))
 		return
 	}
 

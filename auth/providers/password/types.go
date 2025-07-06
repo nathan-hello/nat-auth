@@ -9,14 +9,14 @@ import (
 type FormState struct {
 	Username string
 	Errors   BitError
-	Type     string // "start", "code", "update"
 }
 
 type PasswordUi struct {
 	HtmlPageSignUp func(*http.Request, FormState) []byte
 	HtmlPageSignIn func(*http.Request, FormState) []byte
 	HtmlPageChange func(*http.Request, FormState) []byte
-	HtmlPageTotp   func(*http.Request, FormState) []byte
+	HtmlPageForgot func(*http.Request, FormState) []byte
+	HtmlPageTotp   func(*http.Request, FormState, []byte) []byte
 }
 
 type RedirectFunc func(*http.Request) string

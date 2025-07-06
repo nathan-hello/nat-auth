@@ -31,12 +31,12 @@ func (p PasswordHandler) ChangePassHandler(w http.ResponseWriter, r *http.Reques
 }
 
 func (p PasswordHandler) ChangePass_GET(w http.ResponseWriter, r *http.Request) {
-	w.Write(p.Ui.HtmlPageChange(r))
+	w.Write(p.Ui.HtmlPageChange(r, FormState{}))
 }
 
 func (p PasswordHandler) ChangePass_POST(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		w.Write(p.Ui.HtmlFormSignIn(r, FormState{Errors: ErrInternalServer}))
+		w.Write(p.Ui.HtmlPageChange(r, FormState{Errors: ErrInternalServer}))
 		return
 	}
 
@@ -45,7 +45,7 @@ func (p PasswordHandler) ChangePass_POST(w http.ResponseWriter, r *http.Request)
 
 	err := p.ChangePass_Work(auth.GetUserId(r).Username, password, repeated)
 	if err > 0 {
-		w.Write(p.Ui.HtmlFormChange(r, FormState{Errors: err}))
+		w.Write(p.Ui.HtmlPageChange(r, FormState{Errors: err}))
 		return
 	}
 

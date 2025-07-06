@@ -9,7 +9,7 @@ import (
 
 func (p PasswordHandler) SignUpHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		if done := Redirect(w, r, p.Redirects.BeforeSignUp, ""); done {
+		if done := HttpRedirect(w, r, p.Redirects.BeforeSignUp, ""); done {
 			return
 		}
 		p.SignUp_GET(w, r)
@@ -47,7 +47,7 @@ func (p PasswordHandler) SignUp_POST(w http.ResponseWriter, r *http.Request) {
 
 	CookieSetTokens(w, access, refresh)
 
-	Redirect(w, r, p.Redirects.AfterSignUp, "/")
+	HttpRedirect(w, r, p.Redirects.AfterSignUp, "/")
 }
 
 func (p PasswordHandler) SignUp_Work(username, password, repeated string) (string, string, BitError) {

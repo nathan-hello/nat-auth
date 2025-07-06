@@ -1,0 +1,179 @@
+package pwui
+
+type ColorScheme struct {
+	Light string
+	Dark  string
+}
+
+type Font struct {
+	Family *string
+	Scale  *string
+}
+
+type Theme struct {
+	Title      *string
+	Favicon    *string
+	Radius     *string     // "none" | "sm" | "md" | "lg" | "full"
+	Background interface{} // string or ColorScheme
+	Primary    interface{} // string or ColorScheme
+	Logo       interface{} // string or ColorScheme
+	Font       *Font
+	CSS        *string
+}
+
+// Helper functions for theme processing
+func (t *Theme) getTitle() string {
+	if t.Title != nil {
+		return *t.Title
+	}
+	return "OpenAuth"
+}
+
+func (t *Theme) getFavicon() string {
+	if t.Favicon != nil {
+		return *t.Favicon
+	}
+	return ""
+}
+
+func (t *Theme) getRadius() string {
+	if t.Radius != nil {
+		switch *t.Radius {
+		case "none":
+			return "0"
+		case "sm":
+			return "1"
+		case "md":
+			return "1.25"
+		case "lg":
+			return "1.5"
+		case "full":
+			return "1000000000001"
+		default:
+			return "1"
+		}
+	}
+	return "1"
+}
+
+func (t *Theme) getColor(key interface{}, mode string) string {
+	if key == nil {
+		return ""
+	}
+
+	switch v := key.(type) {
+	case string:
+		return v
+	case ColorScheme:
+		if mode == "dark" {
+			return v.Dark
+		}
+		return v.Light
+	default:
+		return ""
+	}
+}
+
+func (t *Theme) getFontFamily() string {
+	if t.Font != nil && t.Font.Family != nil {
+		return *t.Font.Family
+	}
+	return ""
+}
+
+func (t *Theme) getFontScale() string {
+	if t.Font != nil && t.Font.Scale != nil {
+		return *t.Font.Scale
+	}
+	return ""
+}
+
+func (t *Theme) hasLogo() bool {
+	if t.Logo == nil {
+		return false
+	}
+
+	switch v := t.Logo.(type) {
+	case string:
+		return v != ""
+	case ColorScheme:
+		return v.Light != "" && v.Dark != ""
+	default:
+		return false
+	}
+}
+
+func (t *Theme) getCSS() string {
+	if t.CSS != nil {
+		return *t.CSS
+	}
+	return ""
+}
+
+templ layout(theme *Theme) {
+	<html
+		style={ templ.Attributes{
+				"--color-background-light": theme.getColor(theme.Background, "light"),
+				"--color-background-dark":  theme.getColor(theme.Background, "dark"),
+				"--color-primary-light":    theme.getColor(theme.Primary, "light"),
+				"--color-primary-dark":     theme.getColor(theme.Primary, "dark"),
+				"--font-family":            theme.getFontFamily(),
+				"--font-scale":             theme.getFontScale(),
+				"--border-radius":          theme.getRadius(),
+			} }
+	>
+		<head>
+			<title>{ theme.getTitle() }</title>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			if theme.getFavicon() != "" {
+				<link rel="icon" href={ theme.getFavicon() }/>
+			}
+			<style>
+				{ cssFile }
+			</style>
+			if theme.getCSS() != "" {
+				<style>
+					{ templ.Raw(theme.getCSS()) }
+				</style>
+			}
+		</head>
+		<body>
+			<div data-component="root">
+				<div data-component="center">
+					if theme.hasLogo() {
+						<img
+							data-component="logo"
+							src={ theme.getColor(theme.Logo, "light") }
+							data-mode="light"
+						/>
+						<img
+							data-component="logo"
+							src={ theme.getColor(theme.Logo, "dark") }
+							data-mode="dark"
+						/>
+					} else {
+						@iconOpenAuth()
+					}
+					{ children... }
+				</div>
+			</div>
+		</body>
+	</html>
+}
+
+templ iconOpenAuth() {
+	<svg
+		data-component="logo-default"
+		width="51"
+		height="51"
+		viewBox="0 0 51 51"
+		fill="none"
+		xmlns="http://www.w3.org/2000/svg"
+	>
+		<path
+			d="M0 50.2303V0.12854H50.1017V50.2303H0ZM3.08002 11.8326H11.7041V3.20856H3.08002V11.8326ZM14.8526 11.8326H23.4766V3.20856H14.8526V11.8326ZM26.5566 11.8326H35.1807V3.20856H26.5566V11.8326ZM38.3292 11.8326H47.0217V3.20856H38.3292V11.8326ZM3.08002 23.6052H11.7041V14.9811H3.08002V23.6052ZM14.8526 23.6052H23.4766V14.9811H14.8526V23.6052ZM26.5566 23.6052H35.1807V14.9811H26.5566V23.6052ZM38.3292 23.6052H47.0217V14.9811H38.3292V23.6052ZM3.08002 35.3092H11.7041V26.6852H3.08002V35.3092ZM14.8526 35.3092H23.4766V26.6852H14.8526V35.3092ZM26.5566 35.3092H35.1807V26.6852H26.5566V35.3092ZM38.3292 35.3092H47.0217V26.6852H38.3292V35.3092ZM3.08002 47.1502H11.7041V38.3893H3.08002V47.1502ZM14.8526 47.1502H23.4766V38.3893H14.8526V47.1502ZM26.5566 47.1502H35.1807V38.3893H26.5566V47.1502ZM38.3292 47.1502H47.0217V38.3893H38.3292V47.1502Z"
+			fill="currentColor"
+		></path>
+	</svg>
+}

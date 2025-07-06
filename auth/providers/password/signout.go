@@ -9,12 +9,12 @@ import (
 
 func (p PasswordHandler) SignOutHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		if done := Redirect(w, r, p.Redirects.BeforeSignOut, ""); done {
+		if done := HttpRedirect(w, r, p.Redirects.BeforeSignOut, ""); done {
 			return
 		}
 		CookieDelete(w, "access_token")
 		CookieDelete(w, "refresh_token")
-		Redirect(w, r, p.Redirects.AfterSignOut, "/")
+		HttpRedirect(w, r, p.Redirects.AfterSignOut, "/")
 		return
 	}
 	w.WriteHeader(http.StatusMethodNotAllowed)
@@ -22,7 +22,7 @@ func (p PasswordHandler) SignOutHandler(w http.ResponseWriter, r *http.Request) 
 
 func (p PasswordHandler) SignOutEverywhereHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		if done := Redirect(w, r, p.Redirects.BeforeSignOut, ""); done {
+		if done := HttpRedirect(w, r, p.Redirects.BeforeSignOut, ""); done {
 			return
 		}
 		subject := auth.GetUserId(r)
@@ -32,7 +32,7 @@ func (p PasswordHandler) SignOutEverywhereHandler(w http.ResponseWriter, r *http
 		}
 		CookieDelete(w, "access_token")
 		CookieDelete(w, "refresh_token")
-		Redirect(w, r, p.Redirects.AfterSignOut, "/")
+		HttpRedirect(w, r, p.Redirects.AfterSignOut, "/")
 		return
 	}
 	w.WriteHeader(http.StatusMethodNotAllowed)

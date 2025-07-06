@@ -8,7 +8,7 @@ import (
 
 func (p PasswordHandler) SignInHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		if done := Redirect(w, r, p.Redirects.BeforeSignIn, ""); done {
+		if done := HttpRedirect(w, r, p.Redirects.BeforeSignIn, ""); done {
 			return
 		}
 		p.SignIn_GET(w, r)
@@ -41,7 +41,7 @@ func (p PasswordHandler) SignIn_POST(w http.ResponseWriter, r *http.Request) {
 
 	CookieSetTokens(w, access, refresh)
 
-	Redirect(w, r, p.Redirects.AfterSignIn, "/")
+	HttpRedirect(w, r, p.Redirects.AfterSignIn, "/")
 }
 
 func (p PasswordHandler) SignIn_Work(username, password string) (string, string, BitError) {

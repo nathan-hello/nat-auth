@@ -17,6 +17,11 @@ const (
 	ErrPassNoMatch           BitError = 1 << 6
 	ErrBadLogin              BitError = 1 << 7
 	ErrInternalServer        BitError = 1 << 8
+	ErrInvalidCode           BitError = 1 << 9
+	ErrInvalidEmail          BitError = 1 << 10
+	ErrInvalidPassword       BitError = 1 << 11
+	ErrPasswordMismatch      BitError = 1 << 12
+	ErrValidationError       BitError = 1 << 13
 
 	// System errors (32-63)
 	ErrHashPassword          BitError = 1 << 32
@@ -40,15 +45,15 @@ const (
 )
 
 var messages = map[BitError]string{
-	ErrUsernameTooShort:      "invalid username: too short",
-	ErrUsernameTooLong:       "invalid username: too long",
-	ErrUsernameInvalidFormat: "invalid username: invalid format",
-	ErrUsernameTaken:         "invalid username: already taken",
-	ErrPasswordTooShort:      "invalid password: too short",
-	ErrPasswordTooLong:       "invalid password: too long",
-	ErrPassNoMatch:           "invalid password: does not match",
-	ErrBadLogin:              "invalid username or password",
-	ErrInternalServer:        "internal server error",
+	ErrUsernameTooShort:      "username: too short",
+	ErrUsernameTooLong:       "username: too long",
+	ErrUsernameInvalidFormat: "username: invalid format",
+	ErrUsernameTaken:         "username: already taken",
+	ErrPasswordTooShort:      "password: too short",
+	ErrPasswordTooLong:       "password: too long",
+	ErrPassNoMatch:           "password: does not match",
+	ErrBadLogin:              "generic: bad login",
+	ErrInternalServer:        "generic: internal server error",
 
 	ErrHashPassword:          "password hashing failed",
 	ErrDbInsertUser:          "failed to insert user",
@@ -70,15 +75,21 @@ var messages = map[BitError]string{
 	ErrUuidFailed:            "failed to generate UUID",
 }
 
-var errorCategories = map[BitError]string{
-	ErrUsernameTooShort:      "username",
-	ErrUsernameTooLong:       "username",
-	ErrUsernameInvalidFormat: "username",
-	ErrUsernameTaken:         "username",
-	ErrPasswordTooShort:      "password",
-	ErrPasswordTooLong:       "password",
-	ErrPassNoMatch:           "repeated",
-	ErrBadLogin:              "password",
+var passwordErrors = []BitError{
+	ErrPasswordTooShort,
+	ErrPasswordTooLong,
+	ErrBadLogin,
+}
+
+var usernameErrors = []BitError{
+	ErrUsernameTooShort,
+	ErrUsernameTooLong,
+	ErrUsernameInvalidFormat,
+	ErrUsernameTaken,
+}
+
+var repeatedErrors = []BitError{
+	ErrPassNoMatch,
 }
 
 func (e BitError) Has(err BitError) bool {
@@ -139,16 +150,6 @@ func (e BitError) RenderFullMessages() []string {
 	return renderedMessages
 }
 
-func (e BitError) GetErrorsByCategory(category string) []BitError {
-	var filtered []BitError
-	for err, cat := range errorCategories {
-		if e.Has(err) && cat == category {
-			filtered = append(filtered, err)
-		}
-	}
-	return filtered
-}
-
 func (e BitError) GetUserErrors() BitError {
 	userErrors := BitError(0x00000000FFFFFFFF) // Bits 0-31 (user errors)
 	return e & userErrors
@@ -170,4 +171,31 @@ func (e BitError) Error() string {
 	}
 
 	return fmt.Sprintf("%v", messages)
+}
+
+func (e BitError) IsPasswordError() bool {
+	for _, err := range passwordErrors {
+		if e.Has(err) {
+			return true
+		}
+	}
+	return false
+}
+
+func (e BitError) IsUsernameError() bool {
+	for _, err := range usernameErrors {
+		if e.Has(err) {
+			return true
+		}
+	}
+	return false
+}
+
+func (e BitError) IsRepeatedError() bool {
+	for _, err := range repeatedErrors {
+		if e.Has(err) {
+			return true
+		}
+	}
+	return false
 }

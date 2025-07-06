@@ -1,0 +1,114 @@
+package pwui
+
+import "github.com/nathan-hello/nat-auth/auth/providers/password"
+
+type CodeUICopy struct {
+	EmailPlaceholder string
+	EmailInvalid     string
+	ButtonContinue   string
+	CodeInfo         string
+	CodePlaceholder  string
+	CodeInvalid      string
+	CodeSent         string
+	CodeResent       string
+	CodeDidntGet     string
+	CodeResend       string
+}
+
+func DefaultCodeUICopy() CodeUICopy {
+	return CodeUICopy{
+		EmailPlaceholder: "Email",
+		EmailInvalid:     "Email address is not valid",
+		ButtonContinue:   "Continue",
+		CodeInfo:         "We'll send a pin code to your email.",
+		CodePlaceholder:  "Code",
+		CodeInvalid:      "Invalid code",
+		CodeSent:         "Code sent to ",
+		CodeResent:       "Code resent to ",
+		CodeDidntGet:     "Didn't get code?",
+		CodeResend:       "Resend",
+	}
+}
+
+type CodeState struct {
+	Type   string // "start" or "code"
+	Email  string
+	Resend bool
+}
+
+templ CodeUIStart(theme *Theme, copy CodeUICopy, errorCopy PasswordUIErrorCopy, mode string, err password.BitError) {
+	@layout(theme) {
+		<form data-component="form" method="post">
+			if err != 0 && err.Has(password.ErrInvalidEmail) {
+				@FormAlert(errorCopy, err, "danger")
+			}
+			<input type="hidden" name="action" value="code"/>
+			<input
+				data-component="input"
+				autofocus
+				type={ getInputType(mode) }
+				name={ getInputName(mode) }
+				inputmode={ getInputMode(mode) }
+				required
+				placeholder={ copy.EmailPlaceholder }
+			/>
+			<button data-component="button">{ copy.ButtonContinue }</button>
+		</form>
+		<p data-component="form-footer">{ copy.CodeInfo }</p>
+	}
+}
+
+templ CodeUICode(theme *Theme, copy CodeUICopy, errorCopy PasswordUIErrorCopy, state CodeState, err password.BitError) {
+	@layout(theme) {
+		<form data-component="form" class="form" method="post">
+			if err != 0 && err.Has(password.ErrInvalidCode) {
+				@FormAlert(errorCopy, err, "danger")
+			}
+			if state.Type == "code" {
+				@FormAlert(errorCopy, err, "success")
+			}
+			<input type="hidden" name="action" value="verify"/>
+			<input
+				data-component="input"
+				autofocus
+				minlength="6"
+				maxlength="6"
+				type="text"
+				name="code"
+				required
+				inputmode="numeric"
+				autocomplete="one-time-code"
+				placeholder={ copy.CodePlaceholder }
+			/>
+			<button data-component="button">{ copy.ButtonContinue }</button>
+		</form>
+	}
+}
+
+func getInputType(mode string) string {
+	if mode == "phone" {
+		return "tel"
+	}
+	return "email"
+}
+
+func getInputName(mode string) string {
+	if mode == "phone" {
+		return "phone"
+	}
+	return "email"
+}
+
+func getInputMode(mode string) string {
+	if mode == "phone" {
+		return "numeric"
+	}
+	return "email"
+}
+
+func getCodeSentMessage(copy CodeUICopy, state CodeState) string {
+	if state.Resend {
+		return copy.CodeResent + state.Email
+	}
+	return copy.CodeSent + state.Email
+} 

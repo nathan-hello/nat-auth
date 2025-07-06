@@ -1,0 +1,125 @@
+package pwui
+
+type SelectProviderConfig struct {
+	Hide    bool
+	Display string
+}
+
+type SelectProps struct {
+	Providers map[string]SelectProviderConfig
+}
+
+func GetProviderIcon(providerKey string) templ.Component {
+	switch providerKey {
+	case "github":
+		return IconGithub()
+	case "google":
+		return IconGoogle()
+	case "code":
+		return IconCode()
+	case "password":
+		return IconPassword()
+	case "twitch":
+		return IconTwitch()
+	case "apple":
+		return IconApple()
+	case "x":
+		return IconX()
+	case "microsoft":
+		return IconMicrosoft()
+	case "facebook":
+		return IconFacebook()
+	case "slack":
+		return IconSlackFull()
+	default:
+		return templ.NopComponent
+	}
+}
+
+func GetProviderDisplay(providerKey, providerType string, config SelectProviderConfig) string {
+	if config.Display != "" {
+		return config.Display
+	}
+	
+	// Default display names
+	switch providerType {
+	case "twitch":
+		return "Twitch"
+	case "google":
+		return "Google"
+	case "github":
+		return "GitHub"
+	case "apple":
+		return "Apple"
+	case "x":
+		return "X"
+	case "facebook":
+		return "Facebook"
+	case "microsoft":
+		return "Microsoft"
+	case "slack":
+		return "Slack"
+	default:
+		return providerType
+	}
+}
+
+func shouldHideProvider(providerKey string, props *SelectProps) bool {
+	if props == nil {
+		return false
+	}
+	if config, exists := props.Providers[providerKey]; exists {
+		return config.Hide
+	}
+	return false
+}
+
+func getProviderConfig(providerKey string, props *SelectProps) SelectProviderConfig {
+	if props == nil {
+		return SelectProviderConfig{}
+	}
+	if config, exists := props.Providers[providerKey]; exists {
+		return config
+	}
+	return SelectProviderConfig{}
+}
+
+func hasProviderIcon(providerKey string) bool {
+	switch providerKey {
+	case "github", "google", "code", "password", "twitch", "apple", "x", "microsoft", "facebook", "slack":
+		return true
+	default:
+		return false
+	}
+}
+
+templ selectContent(providers map[string]string, props *SelectProps) {
+	<div data-component="form">
+		for providerKey, providerType := range providers {
+			if !shouldHideProvider(providerKey, props) {
+				@selectProviderButton(providerKey, providerType, getProviderConfig(providerKey, props))
+			}
+		}
+	</div>
+}
+
+templ Select(theme *Theme, providers map[string]string, props *SelectProps) {
+	@layout(theme) {
+		@selectContent(providers, props)
+	}
+}
+
+templ selectProviderButton(providerKey, providerType string, config SelectProviderConfig) {
+	<a
+		href={ templ.URL("/" + providerKey + "/authorize") }
+		data-component="button"
+		data-color="ghost"
+	>
+		if hasProviderIcon(providerKey) {
+			<i data-slot="icon">
+				@GetProviderIcon(providerKey)
+			</i>
+		}
+		Continue with { GetProviderDisplay(providerKey, providerType, config) }
+	</a>
+} 

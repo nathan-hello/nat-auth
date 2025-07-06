@@ -55,6 +55,7 @@ func DefaultPasswordUIErrorCopy() PasswordUIErrorCopy {
 		password.ErrUsernameTooLong:       "Username is too long.",
 		password.ErrUsernameTooShort:      "Username is too short.",
 		password.ErrInternalServer:        "Internal server error.",
+		password.ErrTOTPMismatch:          "TOTP does not match.",
 	}
 }
 

@@ -1,0 +1,36 @@
+package pwui
+
+import (
+    "fmt"
+    "github.com/nathan-hello/nat-auth/auth/providers/password"
+)
+
+templ TOTPSetup(theme Theme, copy CodeUICopy, errorCopy PasswordUIErrorCopy, mode string, err password.BitError, qr []byte) {
+	@layout(theme) {
+		<form data-component="form" method="post">
+			if err != 0 && err.Has(password.ErrTOTPMismatch) {
+				@formAlert(errorCopy, err, "danger")
+			}
+			<input type="hidden" name="action" value="code"/>
+            <img src={ fmt.Sprintf("data:image/png;base64,%s", qr) }>
+			<input
+				data-component="input"
+				autofocus
+				type={ getInputType(mode) }
+				name={ getInputName(mode) }
+				inputmode={ getInputMode(mode) }
+				required
+				placeholder={ copy.EmailPlaceholder }
+			/>
+            <span>
+                TOTP is completely optional, however, it will allow you to change your password in the event you forget it.
+                Please set your TOTP client to use SHA-256 as SHA-1 is now insecure.
+
+                Enter the TOTP generated from your secret to continue, otherwise press Skip.
+            </span>
+			<button data-component="button">{ copy.ButtonContinue }</button>
+			<button data-component="button">{ copy.ButtonSkip }</button>
+		</form>
+		<p data-component="form-footer">{ copy.CodeInfo }</p>
+	}
+}

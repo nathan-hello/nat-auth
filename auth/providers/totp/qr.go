@@ -2,13 +2,17 @@ package totp
 
 import (
 	"encoding/base64"
+	"fmt"
 
 	qrcode "github.com/skip2/go-qrcode"
 )
 
-func QRTOTP(secret string) ([]byte, error) {
+func QRTOTP(secret, subject string) ([]byte, error) {
 	var png []byte
-	png, err := qrcode.Encode(secret, qrcode.Medium, 256)
+	issuer := "nat-auth"
+	formated := fmt.Sprintf("otpauth://totp/%s:%s?secret=%s&issuer=%s&algorithm=SHA256&digits=%d&period=%d",
+		issuer, subject, secret, issuer, DefaultLength, DefaultTimePeriod)
+	png, err := qrcode.Encode(formated, qrcode.Medium, 256)
 	if err != nil {
 		return nil, err
 	}

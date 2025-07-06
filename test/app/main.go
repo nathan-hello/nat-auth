@@ -7,9 +7,9 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/a-h/templ"
 	"github.com/nathan-hello/nat-auth/auth"
 	"github.com/nathan-hello/nat-auth/auth/providers/password"
-	pwui "github.com/nathan-hello/nat-auth/auth/providers/password/components"
 	"github.com/nathan-hello/nat-auth/storage"
 
 	"github.com/nathan-hello/nat-auth/test/app/components"
@@ -23,9 +23,10 @@ func main() {
 		Secret:         "secret",
 	})
 
+	templ.Raw()
+
 	p := password.PasswordHandler{
 		Database: store,
-		Ui:       pwui.PasswordUiDefault,
 	}
 
 	http.Handle("/", newRoute(HomeHandler))

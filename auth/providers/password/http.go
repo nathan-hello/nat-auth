@@ -163,24 +163,22 @@ func MiddlewareVerifyJwtAndInjectUserId(next http.Handler) http.Handler {
 	})
 }
 
-func Redirect(w http.ResponseWriter, r *http.Request, redirectFunc func(r *http.Request) string, defaultRoute string) bool {
-	if redirectFunc == nil {
-		if defaultRoute == "" {
-			return false
-		}
-		w.Header().Set("HX-Redirect", defaultRoute)
-		return true
+func HttpRedirect(w http.ResponseWriter, r *http.Request, redirectFunc func(r *http.Request) string, defaultRoute string) bool {
+	var route string
+
+	if redirectFunc != nil {
+		route = redirectFunc(r)
+	} else if defaultRoute != "" {
+		route = defaultRoute
 	}
-	if route := redirectFunc(r); route != "" {
+	if route == "" {
+		return false
+	}
+	if r.Header.Get("HX-Request") == "true" {
 		w.Header().Set("HX-Redirect", route)
 		return true
-	}
-
-	if defaultRoute != "" {
-		w.Header().Set("HX-Redirect", defaultRoute)
+	} else {
+		http.Redirect(w, r, route, http.StatusFound)
 		return true
 	}
-
-	return false
-
 }

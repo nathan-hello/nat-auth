@@ -16,6 +16,7 @@ type PasswordUi struct {
 	HtmlPageSignUp func(*http.Request, FormState) []byte
 	HtmlPageSignIn func(*http.Request, FormState) []byte
 	HtmlPageChange func(*http.Request, FormState) []byte
+	HtmlPageTotp   func(*http.Request, FormState) []byte
 }
 
 type RedirectFunc func(*http.Request) string
@@ -25,10 +26,12 @@ type PasswordRedirects struct {
 	BeforeSignIn  RedirectFunc
 	BeforeSignOut RedirectFunc
 	BeforeChange  RedirectFunc
+	BeforeTotp    RedirectFunc
 	AfterSignUp   RedirectFunc
 	AfterSignIn   RedirectFunc
 	AfterSignOut  RedirectFunc
 	AfterChange   RedirectFunc
+	AfterTotp     RedirectFunc
 }
 
 type PasswordHandler struct {

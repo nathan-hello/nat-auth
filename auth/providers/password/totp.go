@@ -3,7 +3,7 @@ package password
 import (
 	"net/http"
 
-	"golang.org/x/crypto/bcrypt"
+	"github.com/nathan-hello/nat-auth/auth/providers/totp"
 )
 
 func (p PasswordHandler) TotpHandler(w http.ResponseWriter, r *http.Request) {
@@ -22,7 +22,12 @@ func (p PasswordHandler) TotpHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p PasswordHandler) Totp_GET(w http.ResponseWriter, r *http.Request) {
-	w.Write(p.Ui.HtmlPageTotp(r))
+	secret, err := totp.GenerateSecret()
+	if err != nil {
+		w.Write(p.Ui.HtmlFormTotp(r, FormState{Errors: ErrInternalServer}))
+	}
+	png, err := totp.QRTOTP(secret)
+	w.Write(p.Ui.HtmlPageTotp(r, FormState{Username: png}))
 }
 
 func (p PasswordHandler) Totp_POST(w http.ResponseWriter, r *http.Request) {
@@ -42,30 +47,5 @@ func (p PasswordHandler) Totp_POST(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p PasswordHandler) Totp_Work(otp string) (string, BitError) {
-	dbPassword, err := p.Database.SelectPasswordByUsername(username)
-	if err != nil {
-		return "", "", ErrBadLogin
-	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(dbPassword), []byte(password))
-	if err != nil {
-		return "", "", ErrBadLogin
-	}
-
-	subject, err := p.Database.SelectSubjectByUsername(username)
-	if err != nil {
-		return "", "", ErrDbSelectUserSubject
-	}
-
-	access, refresh, family, err := NewTokenPair(JwtParams{Subject: subject, UserName: username})
-	if err != nil {
-		return "", "", ErrParsingJwt
-	}
-
-	err = p.Database.InsertFamily(subject, family, true)
-	if err != nil {
-		return "", "", ErrDbInsertToken
-	}
-
-	return access, refresh, 0
 }

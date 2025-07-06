@@ -25,9 +25,9 @@ type Theme struct {
 	Title      string
 	Favicon    string
 	Radius     string     // "none" | "sm" | "md" | "lg" | "full"
-	Background interface{} // string or ColorScheme
-	Primary    interface{} // string or ColorScheme
-	Logo       interface{} // string or ColorScheme
+	Background ColorScheme // string or ColorScheme
+	Primary    ColorScheme // string or ColorScheme
+	Logo       ColorScheme // string or ColorScheme
 	Font       Font
 }
 
@@ -48,50 +48,20 @@ func (t *Theme) getRadius() string {
 		}
 }
 
-func (t *Theme) getColor(key interface{}, mode string) string {
-	if key == nil {
-		return ""
-	}
-
-	switch v := key.(type) {
-	case string:
-		return v
-	case ColorScheme:
-		if mode == "dark" {
-			return v.Dark
-		}
-		return v.Light
-	default:
-		return ""
-	}
-}
-
-
 func (t *Theme) hasLogo() bool {
-	if t.Logo == nil {
-		return false
-	}
-
-	switch v := t.Logo.(type) {
-	case string:
-		return v != ""
-	case ColorScheme:
-		return v.Light != "" && v.Dark != ""
-	default:
-		return false
-	}
+	return t.Logo.Light != "" && t.Logo.Dark != ""
 }
 
 templ layout(theme Theme) {
 	<html
-		style={ templ.Attributes{
-				"--color-background-light": theme.getColor(theme.Background, "light"),
-				"--color-background-dark":  theme.getColor(theme.Background, "dark"),
-				"--color-primary-light":    theme.getColor(theme.Primary, "light"),
-				"--color-primary-dark":     theme.getColor(theme.Primary, "dark"),
-				"--font-family":            theme.Font.Family,
-				"--font-scale":             theme.Font.Scale,
-				"--border-radius":          theme.getRadius(),
+		style={ map[string]templ.SafeCSSProperty{
+				"--color-background-light": templ.SafeCSSProperty(theme.Background.Light),
+				"--color-background-dark":  templ.SafeCSSProperty(theme.Background.Dark),
+				"--color-primary-light":    templ.SafeCSSProperty(theme.Primary.Light),
+				"--color-primary-dark":     templ.SafeCSSProperty(theme.Primary.Dark),
+				"--font-family":            templ.SafeCSSProperty(theme.Font.Family),
+				"--font-scale":             templ.SafeCSSProperty(theme.Font.Scale),
+				"--border-radius":          templ.SafeCSSProperty(theme.getRadius()),
 			} }
 	>
 		<head>
@@ -109,12 +79,12 @@ templ layout(theme Theme) {
 					if theme.hasLogo() {
 						<img
 							data-component="logo"
-							src={ theme.getColor(theme.Logo, "light") }
+							src={ theme.Logo.Light }
 							data-mode="light"
 						/>
 						<img
 							data-component="logo"
-							src={ theme.getColor(theme.Logo, "dark") }
+							src={ theme.Logo.Dark }
 							data-mode="dark"
 						/>
 					} else {

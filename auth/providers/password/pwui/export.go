@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/nathan-hello/nat-auth/auth/providers/password"
+	"github.com/nathan-hello/nat-auth/logger"
 )
 
 type PasswordUICopy struct {
@@ -16,7 +17,7 @@ type PasswordUICopy struct {
 	RegisterPrompt      string
 	LoginPrompt         string
 	Login               string
-	ChangePrompt        string
+	ForgotPrompt        string
 	CodeResend          string
 	CodeReturn          string
 	Logo                string
@@ -25,6 +26,8 @@ type PasswordUICopy struct {
 	InputCode           string
 	InputRepeat         string
 	ButtonContinue      string
+	TotpTest            string
+	TotpSkip            string
 	EmailPlaceholder    string
 	EmailInvalid        string
 	CodeInfo            string
@@ -39,10 +42,19 @@ type PasswordUICopy struct {
 
 func DefaultPasswordUITheme() Theme {
 	return Theme{
-		Title:      "NatAuth",
-		Logo:       "/favicon.ico",
-		Background: "white",
-		Primary:    "blue",
+		Title: "NatAuth",
+		Logo: ColorScheme{
+			Light: "/favicon.ico",
+			Dark:  "/favicon.ico",
+		},
+		Background: ColorScheme{
+			Light: "white",
+			Dark:  "white",
+		},
+		Primary: ColorScheme{
+			Light: "blue",
+			Dark:  "blue",
+		},
 		Font: Font{
 			Family: "Varela Round, sans-serif",
 			Scale:  "1",
@@ -54,13 +66,15 @@ func DefaultPasswordUICopy() PasswordUICopy {
 	return PasswordUICopy{
 		RegisterTitle:       "Welcome to the app",
 		RegisterDescription: "Sign in with your email",
+		TotpTest:            "Test!",
+		TotpSkip:            "Skip",
 		LoginTitle:          "Welcome to the app",
 		LoginDescription:    "Sign in with your email",
 		Register:            "Register",
 		RegisterPrompt:      "Don't have an account?",
 		LoginPrompt:         "Already have an account?",
 		Login:               "Login",
-		ChangePrompt:        "Forgot password?",
+		ForgotPrompt:        "Forgot password?",
 		CodeResend:          "Resend code",
 		CodeReturn:          "Back to",
 		Logo:                "A",
@@ -106,11 +120,16 @@ func DefaultPasswordUi(params DefaultPasswordUiParams) password.PasswordUi {
 	var theme Theme
 	if params.Theme == nil {
 		theme = DefaultPasswordUITheme()
+	} else {
+		theme = *params.Theme
 	}
 	if params.Copy == nil {
 		copy = DefaultPasswordUICopy()
+	} else {
+		copy = *params.Copy
 	}
 
+	logger.Log("DefaultPasswordUi").Info("theme: %#v", theme)
 	return password.PasswordUi{
 		HtmlPageSignUp: func(r *http.Request, state password.FormState) []byte {
 			var buf bytes.Buffer
@@ -125,6 +144,16 @@ func DefaultPasswordUi(params DefaultPasswordUiParams) password.PasswordUi {
 		HtmlPageChange: func(r *http.Request, state password.FormState) []byte {
 			var buf bytes.Buffer
 			Change(theme, copy, state).Render(r.Context(), &buf)
+			return buf.Bytes()
+		},
+		HtmlPageForgot: func(r *http.Request, state password.FormState) []byte {
+			var buf bytes.Buffer
+			Forgot(theme, copy, state).Render(r.Context(), &buf)
+			return buf.Bytes()
+		},
+		HtmlPageTotp: func(r *http.Request, state password.FormState, qr []byte, skipRedirectUrl string, totpSecret string) []byte {
+			var buf bytes.Buffer
+			TOTPSetup(theme, copy, state, qr, skipRedirectUrl, totpSecret).Render(r.Context(), &buf)
 			return buf.Bytes()
 		},
 	}

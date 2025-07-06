@@ -9,9 +9,6 @@ import (
 
 func (p PasswordHandler) TotpHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
-		if done := HttpRedirect(w, r, p.Redirects.BeforeTotp, ""); done {
-			return
-		}
 		p.Totp_GET(w, r)
 		return
 	}
@@ -23,39 +20,62 @@ func (p PasswordHandler) TotpHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p PasswordHandler) Totp_GET(w http.ResponseWriter, r *http.Request) {
-	secret, err := totp.GenerateSecret()
-	if err != nil {
-		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: ErrInternalServer}, nil))
-	}
-	err = p.Database.InsertSecret(auth.GetUserId(r).Subject, secret)
-	if err != nil {
-		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: ErrInternalServer}, nil))
+	user := auth.GetUserId(r)
+	if !user.Valid {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
 	}
 
-	png, err := totp.QRTOTP(secret)
+	secret, err := totp.GenerateSecret()
 	if err != nil {
-		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: ErrInternalServer}, nil))
+		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: ErrInternalServer}, nil, "/", ""))
+		return
 	}
-	w.Write(p.Ui.HtmlPageTotp(r, FormState{}, png))
+	err = p.Database.InsertSecret(user.Subject, secret)
+	if err != nil {
+		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: ErrInternalServer}, nil, "/", ""))
+		return
+	}
+
+	png, err := totp.QRTOTP(secret, user.Subject)
+	if err != nil {
+		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: ErrInternalServer}, nil, "/", ""))
+		return
+	}
+
+	var redirectUrl string
+
+	if p.Redirects.AfterSignIn != nil {
+		redirectUrl = p.Redirects.AfterSignIn(r)
+	} else {
+		redirectUrl = "/"
+	}
+
+	w.Write(p.Ui.HtmlPageTotp(r, FormState{}, png, redirectUrl, secret))
 }
 
 func (p PasswordHandler) Totp_POST(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: ErrInternalServer}, nil))
+	user := auth.GetUserId(r)
+	if !user.Valid {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-	otp := r.FormValue("otp")
+	if err := r.ParseForm(); err != nil {
+		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: ErrInternalServer}, nil, "/", ""))
+		return
+	}
+	otp := r.FormValue("code")
 
-	secret, err := p.Database.SelectSecret(auth.GetUserId(r).Subject)
+	secret, err := p.Database.SelectSecret(user.Subject)
 	if err != nil {
-		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: ErrInternalServer}, nil))
+		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: ErrInternalServer}, nil, "/", ""))
 		return
 	}
 
 	if totp.CheckTOTP(otp, secret) != nil {
-		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: ErrInternalServer}, nil))
+		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: ErrInternalServer}, nil, "/", ""))
 		return
 	}
 
-	HttpRedirect(w, r, p.Redirects.AfterTotp, "/")
+	HttpRedirect(w, r, p.Redirects.AfterSignIn, "/")
 }

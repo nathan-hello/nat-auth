@@ -29,7 +29,29 @@ func main() {
 
 	p := password.PasswordHandler{
 		Database: store,
-		Ui:       pwui.DefaultPasswordUi(pwui.DefaultPasswordUiParams{}),
+		Ui: pwui.DefaultPasswordUi(pwui.DefaultPasswordUiParams{
+			Theme: &pwui.Theme{
+				Primary: pwui.ColorScheme{
+					Light: "oklch(51.4% 0.222 16.935)",
+					Dark:  "oklch(51.4% 0.222 16.935)",
+				},
+				Background: pwui.ColorScheme{
+					Light: "oklch(29.3% 0.066 243.157)",
+					Dark:  "oklch(29.3% 0.066 243.157)",
+				},
+				Logo: pwui.ColorScheme{
+					Light: "/favicon.ico",
+					Dark:  "/favicon.ico",
+				},
+				Title:   "NatAuth",
+				Favicon: "/favicon.ico",
+				Radius:  "none",
+				Font: pwui.Font{
+					Family: "Varela Round, sans-serif",
+					Scale:  "1",
+				},
+			},
+		}),
 	}
 
 	http.Handle("/", newRoute(HomeHandler))
@@ -37,7 +59,9 @@ func main() {
 	http.Handle("/auth/login", newRoute(p.SignInHandler))
 	http.Handle("/auth/logout", newRoute(p.SignOutHandler))
 	http.Handle("/auth/logout/everywhere", newRoute(p.SignOutEverywhereHandler))
+	http.Handle("/auth/forgot", newRoute(p.ForgotHandler))
 	http.Handle("/auth/change", newRoute(p.ChangePassHandler))
+	http.Handle("/auth/totp", newRoute(p.TotpHandler))
 	http.Handle("/protected", newRoute(ProtectedHandler))
 
 	sigChan := make(chan os.Signal, 1)

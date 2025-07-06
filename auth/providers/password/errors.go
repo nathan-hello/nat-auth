@@ -22,7 +22,7 @@ const (
 	ErrInvalidPassword       BitError = 1 << 11
 	ErrPasswordMismatch      BitError = 1 << 12
 	ErrValidationError       BitError = 1 << 13
-	ErrTOTPMismatch			 BitError = 1 << 14
+	ErrTOTPMismatch          BitError = 1 << 14
 
 	// System errors (32-63)
 	ErrHashPassword          BitError = 1 << 32
@@ -55,6 +55,12 @@ var messages = map[BitError]string{
 	ErrPassNoMatch:           "password: does not match",
 	ErrBadLogin:              "generic: bad login",
 	ErrInternalServer:        "generic: internal server error",
+	ErrTOTPMismatch:          "TOTP: code mismatch",
+	ErrInvalidCode:           "TOTP: invalid code",
+	ErrInvalidEmail:          "TOTP: invalid email",
+	ErrInvalidPassword:       "TOTP: invalid password",
+	ErrPasswordMismatch:      "TOTP: password mismatch",
+	ErrValidationError:       "TOTP: validation error",
 
 	ErrHashPassword:          "password hashing failed",
 	ErrDbInsertUser:          "failed to insert user",
@@ -120,25 +126,6 @@ func (e BitError) GetErrors() []error {
 		}
 	}
 	return errs
-}
-
-// RenderUserMessages returns all error messages as a slice
-// If system error, then give generic message
-func (e BitError) RenderUserMessages() []string {
-	var renderedMessages []string
-	for err := range messages {
-		// If there is at least one internal server error,
-		// then any user errors are likely system errors is disguise
-		if err.GetSystemErrors() > 0 {
-			return []string{ErrInternalServer.Error()}
-		}
-
-		if e.Has(err) {
-			renderedMessages = append(renderedMessages, messages[err])
-		}
-
-	}
-	return renderedMessages
 }
 
 func (e BitError) RenderFullMessages() []string {

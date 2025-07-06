@@ -178,7 +178,7 @@ func HttpRedirect(w http.ResponseWriter, r *http.Request, redirectFunc func(r *h
 		w.Header().Set("HX-Redirect", route)
 		return true
 	} else {
-		http.Redirect(w, r, route, http.StatusFound)
+		http.Redirect(w, r, route, http.StatusSeeOther)
 		return true
 	}
 }

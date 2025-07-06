@@ -40,7 +40,7 @@ func (p PasswordHandler) SignUp_POST(w http.ResponseWriter, r *http.Request) {
 	access, refresh, errs := p.SignUp_Work(username, password, repeated)
 
 	if errs > 0 {
-		logger.Log("register-handler").Error("postRegister failed: %#v", errs.RenderUserMessages())
+		logger.Log("register-handler").Error("postRegister failed: %#v", errs.RenderFullMessages())
 		w.Write(p.Ui.HtmlPageSignUp(r, FormState{Username: username, Errors: errs}))
 		return
 	}

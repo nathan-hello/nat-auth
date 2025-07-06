@@ -9,34 +9,34 @@ type SelectProps struct {
 	Providers map[string]SelectProviderConfig
 }
 
-func GetProviderIcon(providerKey string) templ.Component {
+func getProviderIcon(providerKey string) templ.Component {
 	switch providerKey {
 	case "github":
-		return IconGithub()
+		return iconGithub()
 	case "google":
-		return IconGoogle()
+		return iconGoogle()
 	case "code":
-		return IconCode()
+		return iconCode()
 	case "password":
-		return IconPassword()
+		return iconPassword()
 	case "twitch":
-		return IconTwitch()
+		return iconTwitch()
 	case "apple":
-		return IconApple()
+		return iconApple()
 	case "x":
-		return IconX()
+		return iconX()
 	case "microsoft":
-		return IconMicrosoft()
+		return iconMicrosoft()
 	case "facebook":
-		return IconFacebook()
+		return iconFacebook()
 	case "slack":
-		return IconSlackFull()
+		return iconSlack()
 	default:
 		return templ.NopComponent
 	}
 }
 
-func GetProviderDisplay(providerKey, providerType string, config SelectProviderConfig) string {
+func getProviderDisplay(providerKey, providerType string, config SelectProviderConfig) string {
 	if config.Display != "" {
 		return config.Display
 	}
@@ -61,6 +61,18 @@ func GetProviderDisplay(providerKey, providerType string, config SelectProviderC
 		return "Slack"
 	default:
 		return providerType
+	}
+}
+
+templ Select(theme Theme, providers map[string]string, props *SelectProps) {
+	@layout(theme) {
+	<div data-component="form">
+		for providerKey, providerType := range providers {
+			if !shouldHideProvider(providerKey, props) {
+				@selectProviderButton(providerKey, providerType, getProviderConfig(providerKey, props))
+			}
+		}
+	</div>
 	}
 }
 
@@ -93,22 +105,6 @@ func hasProviderIcon(providerKey string) bool {
 	}
 }
 
-templ selectContent(providers map[string]string, props *SelectProps) {
-	<div data-component="form">
-		for providerKey, providerType := range providers {
-			if !shouldHideProvider(providerKey, props) {
-				@selectProviderButton(providerKey, providerType, getProviderConfig(providerKey, props))
-			}
-		}
-	</div>
-}
-
-templ Select(theme Theme, providers map[string]string, props *SelectProps) {
-	@layout(theme) {
-		@selectContent(providers, props)
-	}
-}
-
 templ selectProviderButton(providerKey, providerType string, config SelectProviderConfig) {
 	<a
 		href={ templ.URL("/auth/" + providerKey + "/login") }
@@ -117,9 +113,9 @@ templ selectProviderButton(providerKey, providerType string, config SelectProvid
 	>
 		if hasProviderIcon(providerKey) {
 			<i data-slot="icon">
-				@GetProviderIcon(providerKey)
+				@getProviderIcon(providerKey)
 			</i>
 		}
-		Continue with { GetProviderDisplay(providerKey, providerType, config) }
+		Continue with { getProviderDisplay(providerKey, providerType, config) }
 	</a>
 } 

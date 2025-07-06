@@ -5,32 +5,43 @@ import (
     "github.com/nathan-hello/nat-auth/auth/providers/password"
 )
 
-templ TOTPSetup(theme Theme, copy PasswordUICopy, mode string, err password.BitError, qr []byte) {
+templ TOTPSetup(theme Theme, copy PasswordUICopy, state password.FormState, qr []byte, skipRedirectUrl string, totpSecret string) {
 	@layout(theme) {
 		<form data-component="form" method="post">
-			if err != 0 && err.Has(password.ErrTOTPMismatch) {
-				@formAlert(copy, err, "danger")
+			if state.Errors != 0 && state.Errors.Has(password.ErrTOTPMismatch) {
+				@formAlert(copy, state.Errors, "danger")
 			}
 			<input type="hidden" name="action" value="code"/>
+            <span>
+                TOTP is recommended in case you lose access to your account.
+				Add the QR code or secret key to your preferred OTP manager.
+            </span>
+            <span>
+                Without a TOTP, you will lose access to your account if you forget your password, forever.
+            </span>
             <img src={ fmt.Sprintf("data:image/png;base64,%s", qr) }>
+			<div style="display: flex; align-items: center; gap: 8px; margin: 16px 0; padding: 12px; background: #f5f5f5; border-radius: 6px; border: 1px solid #e0e0e0;">
+				<code style="font-family: 'Courier New', monospace; font-size: 14px; color: #333; flex: 1; word-break: break-all;">{ totpSecret }</code>
+				<button 
+					type="button" 
+					onclick="navigator.clipboard.writeText('{ totpSecret }').then(() => this.textContent = 'Copied!').then(() => setTimeout(() => this.textContent = 'Copy', 2000))"
+					style="padding: 6px 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; white-space: nowrap;"
+				>
+					Copy
+				</button>
+			</div>
 			<input
 				data-component="input"
 				autofocus
-				type={ getInputType(mode) }
-				name={ getInputName(mode) }
-				inputmode={ getInputMode(mode) }
+				type="text"
+				name="code"
+				inputmode="numeric"
+				autocomplete="one-time-code"
 				required
-				placeholder={ copy.EmailPlaceholder }
+				placeholder={ copy.CodePlaceholder }
 			/>
-            <span>
-                TOTP is completely optional, however, it will allow you to change your password in the event you forget it.
-                Please set your TOTP client to use SHA-256 as SHA-1 is now insecure.
-
-                Enter the TOTP generated from your secret to continue, otherwise press Skip.
-            </span>
-			<button data-component="button">{ copy.ButtonContinue }</button>
-			<button data-component="button">{ copy.ButtonSkip }</button>
+			<button data-component="button">{ copy.TotpTest }</button>
+			<a data-component="button" href={ skipRedirectUrl }>{ copy.TotpSkip }</a>
 		</form>
-		<p data-component="form-footer">{ copy.CodeInfo }</p>
 	}
 }

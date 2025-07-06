@@ -65,8 +65,7 @@ func Log(key string) *Sloggers {
 
 	for _, v := range writers {
 		writer := slog.New(slog.NewJSONHandler(v, &slog.HandlerOptions{
-			Level:     level,
-			AddSource: true,
+			Level: level,
 		}))
 		s.slogs = append(s.slogs, writer)
 	}

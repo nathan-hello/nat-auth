@@ -17,9 +17,6 @@ func (p PasswordHandler) ChangePassHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	if r.Method == "GET" {
-		if done := HttpRedirect(w, r, p.Redirects.BeforeChange, ""); done {
-			return
-		}
 		p.ChangePass_GET(w, r)
 		return
 	}
@@ -49,7 +46,7 @@ func (p PasswordHandler) ChangePass_POST(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	HttpRedirect(w, r, p.Redirects.AfterChange, "/")
+	HttpRedirect(w, r, p.Redirects.AfterSignIn, "/")
 }
 
 func (p PasswordHandler) ChangePass_Work(username, password, repeated string) BitError {

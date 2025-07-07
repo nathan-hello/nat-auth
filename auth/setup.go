@@ -31,18 +31,18 @@ func NewNatAuth(middleware func(next http.Handler) http.Handler, privateKeyPath,
 		Ui: pwui.DefaultPasswordUi(pwui.DefaultPasswordUiParams{
 			Theme: pwui.Theme{
 				Primary: pwui.ColorScheme{
-					Light: "oklch(51.4% 0.222 16.935)",
-					Dark:  "oklch(51.4% 0.222 16.935)",
+					Light: "#262626",
+					Dark:  "#262626",
 				},
 				Background: pwui.ColorScheme{
-					Light: "oklch(29.3% 0.066 243.157)",
-					Dark:  "oklch(29.3% 0.066 243.157)",
+					Light: "#171717",
+					Dark:  "#171717",
 				},
 				Logo: pwui.ColorScheme{
 					Light: "https://reluekiss.com/favicon.svg",
 					Dark:  "https://reluekiss.com/favicon.svg",
 				},
-				Title:   "NatAuth",
+				Title:   "Nat/e",
 				Favicon: "https://reluekiss.com/favicon.svg",
 				Radius:  "none",
 				Font: pwui.Font{

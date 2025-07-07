@@ -17,32 +17,19 @@ const (
 	ErrPassNoMatch           BitError = 1 << 6
 	ErrBadLogin              BitError = 1 << 7
 	ErrInternalServer        BitError = 1 << 8
-	ErrInvalidCode           BitError = 1 << 9
-	ErrInvalidEmail          BitError = 1 << 10
-	ErrInvalidPassword       BitError = 1 << 11
-	ErrPasswordMismatch      BitError = 1 << 12
-	ErrValidationError       BitError = 1 << 13
 	ErrTOTPMismatch          BitError = 1 << 14
 
 	// System errors (32-63)
-	ErrHashPassword          BitError = 1 << 32
-	ErrDbInsertUser          BitError = 1 << 33
-	ErrDbSelectAfterInsert   BitError = 1 << 34
-	ErrParsingJwt            BitError = 1 << 35
-	ErrInvalidToken          BitError = 1 << 36
-	ErrJwtNotInHeader        BitError = 1 << 37
-	ErrJwtInvalid            BitError = 1 << 38
-	ErrJwtMethodBad          BitError = 1 << 39
-	ErrJwtInvalidInDb        BitError = 1 << 40
-	ErrDbConnection          BitError = 1 << 41
-	ErrDbInsertToken         BitError = 1 << 42
-	ErrDbSelectUserFromToken BitError = 1 << 43
-	ErrJwtGoodAccBadRef      BitError = 1 << 44
-	ErrDbInsertUsersToken    BitError = 1 << 45
-	ErrDbSelectUserFromJwt   BitError = 1 << 46
-	ErrDbUpdateTokensInvalid BitError = 1 << 47
-	ErrDbSelectUserSubject   BitError = 1 << 48
-	ErrUuidFailed            BitError = 1 << 49
+	ErrHashPassword        BitError = 1 << 32
+	ErrDbInsertUser        BitError = 1 << 33
+	ErrParsingJwt          BitError = 1 << 35
+	ErrJwtMethodBad        BitError = 1 << 39
+	ErrJwtInvalid          BitError = 1 << 38
+	ErrJwtInvalidInDb      BitError = 1 << 40
+	ErrDbInsertToken       BitError = 1 << 42
+	ErrJwtGoodAccBadRef    BitError = 1 << 44
+	ErrDbSelectUserSubject BitError = 1 << 48
+	ErrUuidFailed          BitError = 1 << 49
 )
 
 var messages = map[BitError]string{
@@ -56,30 +43,17 @@ var messages = map[BitError]string{
 	ErrBadLogin:              "generic: bad login",
 	ErrInternalServer:        "generic: internal server error",
 	ErrTOTPMismatch:          "TOTP: code mismatch",
-	ErrInvalidCode:           "TOTP: invalid code",
-	ErrInvalidEmail:          "TOTP: invalid email",
-	ErrInvalidPassword:       "TOTP: invalid password",
-	ErrPasswordMismatch:      "TOTP: password mismatch",
-	ErrValidationError:       "TOTP: validation error",
 
-	ErrHashPassword:          "password hashing failed",
-	ErrDbInsertUser:          "failed to insert user",
-	ErrDbSelectAfterInsert:   "failed to select after insert",
-	ErrParsingJwt:            "failed to parse JWT",
-	ErrInvalidToken:          "invalid token",
-	ErrJwtNotInHeader:        "JWT not found in header",
-	ErrJwtInvalid:            "JWT not found in database",
-	ErrJwtMethodBad:          "invalid JWT signing method",
-	ErrJwtInvalidInDb:        "JWT marked as invalid in database",
-	ErrDbConnection:          "database connection error",
-	ErrDbInsertToken:         "failed to insert token",
-	ErrDbSelectUserFromToken: "failed to select user from token",
-	ErrJwtGoodAccBadRef:      "access token was good but refresh was bad",
-	ErrDbInsertUsersToken:    "failed to insert users tokens",
-	ErrDbSelectUserFromJwt:   "failed to select user from JWT",
-	ErrDbUpdateTokensInvalid: "failed to update tokens invalid",
-	ErrDbSelectUserSubject:   "failed to select user subject",
-	ErrUuidFailed:            "failed to generate UUID",
+	ErrHashPassword:        "password hashing failed",
+	ErrDbInsertUser:        "failed to insert user",
+	ErrParsingJwt:          "failed to parse JWT",
+	ErrJwtMethodBad:        "invalid JWT signing method",
+	ErrJwtInvalid:          "JWT not found in database",
+	ErrJwtInvalidInDb:      "JWT marked as invalid in database",
+	ErrDbInsertToken:       "failed to insert token",
+	ErrJwtGoodAccBadRef:    "access token was good but refresh was bad",
+	ErrDbSelectUserSubject: "failed to select user subject",
+	ErrUuidFailed:          "failed to generate UUID",
 }
 
 var passwordErrors = []BitError{

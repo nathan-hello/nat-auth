@@ -1,4 +1,4 @@
-package auth
+package user
 
 import (
 	"net/http"
@@ -14,7 +14,7 @@ type AuthContext struct {
 	Valid    bool
 }
 
-func GetUserId(r *http.Request) AuthContext {
+func GetUser(r *http.Request) AuthContext {
 	userId := r.Context().Value(AuthContextKey)
 	if userId == nil {
 		return AuthContext{Valid: false}

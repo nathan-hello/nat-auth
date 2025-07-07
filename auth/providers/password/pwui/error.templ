@@ -1,20 +1,24 @@
 package pwui
 
 import "github.com/nathan-hello/nat-auth/auth/providers/password"
+import "github.com/nathan-hello/nat-auth/logger"
 
 func getCopyFromBitError(copy PasswordUICopy, err password.BitError) []string {
 	var messages []string
+	logger.Log("getCopyFromBitError").Info("got error: %#v msg: %#v", err, err.RenderFullMessages())
 	for i:= 0; i < 64; i++ {
-		newErr := password.BitError(i << 1)
+		newErr := password.BitError(1 << i)
 		if err.Has(newErr) {
 			msg, ok := copy.Error[newErr]
 			if !ok {
 				defaultCopy := DefaultPasswordUICopy()
 				msg = defaultCopy.Error[newErr]
 			}
+			logger.Log("getCopyFromBitError").Info("got message: %#v", msg)
 			messages = append(messages, msg)
 		}
 	}
+	logger.Log("getCopyFromBitError").Info("got messages: %#v", messages)
 	return messages
 }
 

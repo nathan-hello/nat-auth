@@ -76,6 +76,7 @@ templ layout(theme Theme) {
 		<body>
 			<div data-component="root">
 				<div data-component="center">
+				<a href="/">
 					if theme.hasLogo() {
 						<img
 							data-component="logo"
@@ -90,7 +91,9 @@ templ layout(theme Theme) {
 					} else {
 						@iconOpenAuth()
 					}
+					</a>
 					{ children... }
+
 				</div>
 			</div>
 		</body>

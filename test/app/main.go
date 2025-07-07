@@ -2,67 +2,19 @@ package main
 
 import (
 	"fmt"
-	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/nathan-hello/nat-auth/auth"
-	"github.com/nathan-hello/nat-auth/auth/providers/password"
-	"github.com/nathan-hello/nat-auth/auth/providers/password/pwui"
-	"github.com/nathan-hello/nat-auth/logger"
-	"github.com/nathan-hello/nat-auth/storage"
+	"github.com/nathan-hello/nat-auth/auth/user"
 
 	"github.com/nathan-hello/nat-auth/test/app/components"
 )
 
 func main() {
-	store := storage.NewValkey("127.0.0.1:6379")
-	password.InitJwt(password.AuthParams{
-		PublicKeyPath:  "pub.pem",
-		PrivateKeyPath: "key.pem",
-		Secret:         "secret",
-	})
-	logger.LogLevel(slog.LevelDebug)
-	logger.LogNewOutput(os.Stdout)
-
-	p := password.PasswordHandler{
-		Database: store,
-		Ui: pwui.DefaultPasswordUi(pwui.DefaultPasswordUiParams{
-			Theme: &pwui.Theme{
-				Primary: pwui.ColorScheme{
-					Light: "#262626",
-					Dark:  "#262626",
-				},
-				Background: pwui.ColorScheme{
-					Light: "#171717",
-					Dark:  "#171717",
-				},
-				Logo: pwui.ColorScheme{
-					Light: "/favicon.ico",
-					Dark:  "/favicon.ico",
-				},
-				Title:   "NatAuth",
-				Favicon: "/favicon.ico",
-				Radius:  "none",
-				Font: pwui.Font{
-					Family: "Varela Round, sans-serif",
-					Scale:  "1",
-				},
-			},
-		}),
-	}
-
-	http.Handle("/", newRoute(HomeHandler))
-	http.Handle("/auth/register", newRoute(p.SignUpHandler))
-	http.Handle("/auth/login", newRoute(p.SignInHandler))
-	http.Handle("/auth/logout", newRoute(p.SignOutHandler))
-	http.Handle("/auth/logout/everywhere", newRoute(p.SignOutEverywhereHandler))
-	http.Handle("/auth/forgot", newRoute(p.ForgotHandler))
-	http.Handle("/auth/change", newRoute(p.ChangePassHandler))
-	http.Handle("/auth/totp", newRoute(p.TotpHandler))
-	http.Handle("/protected", newRoute(ProtectedHandler))
+	onClose := auth.NewNatAuth(loggerMiddleware, "pub.pem", "key.pem", "secret")
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -70,7 +22,7 @@ func main() {
 	go func() {
 		<-sigChan
 		fmt.Printf("Received shutdown signal, closing connections...")
-		store.Client.Close()
+		onClose()
 		fmt.Printf("Valkey client closed")
 		os.Exit(0)
 	}()
@@ -81,14 +33,9 @@ func main() {
 	}
 }
 
-func newRoute(f http.HandlerFunc) http.Handler {
-	return password.MiddlewareVerifyJwtAndInjectUserId(loggerMiddleware(http.HandlerFunc(f)))
-}
-
 func ProtectedHandler(w http.ResponseWriter, r *http.Request) {
-	userId := auth.GetUserId(r)
+	userId := user.GetUser(r)
 	if userId.Subject == "" || userId.Username == "" {
-		logger.Log("app").Error("User ID not found in request context: %#v", userId)
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
@@ -97,7 +44,7 @@ func ProtectedHandler(w http.ResponseWriter, r *http.Request) {
 
 // HomeHandler handles the home route
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	userId := auth.GetUserId(r)
+	userId := user.GetUser(r)
 	w.Header().Set("Content-Type", "text/html")
 	components.Root(userId.Subject).Render(r.Context(), w)
 }

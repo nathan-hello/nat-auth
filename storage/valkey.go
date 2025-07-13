@@ -7,28 +7,43 @@ import (
 	"io"
 	"strings"
 
-	"github.com/nathan-hello/nat-auth/logger"
+	"github.com/nathan-hello/nat-auth/utils"
 	"github.com/valkey-io/valkey-go"
 )
 
 var US = "\x1f"
+var prefix string
+var version = "1"
 
 type VK struct {
 	Client valkey.Client
 }
 
-func NewValkey(addr string) *VK {
+func NewValkey(addr string, valkeyPrefix string) (*VK, error) {
 	var err error
 	client, err := valkey.NewClient(valkey.ClientOption{InitAddress: []string{addr}})
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return &VK{Client: client}
+	if valkeyPrefix != "" {
+		prefix = valkeyPrefix
+	} else {
+		prefix = "natauth"
+	}
+
+	return &VK{Client: client}, nil
+}
+
+func key(parts ...string) string {
+	if prefix != "" {
+		return strings.Join(append([]string{prefix, version}, parts...), US)
+	}
+	return strings.Join(append([]string{version}, parts...), US)
 }
 
 func (vk *VK) InsertFamily(userId, family string, value bool) error {
 	ctx := context.Background()
-	joined := strings.Join([]string{"jwt", "subject", userId}, US)
+	joined := key("jwt", "subject", userId)
 
 	var val string
 	if value {
@@ -39,7 +54,7 @@ func (vk *VK) InsertFamily(userId, family string, value bool) error {
 
 	err := vk.Client.Do(ctx, vk.Client.B().Hset().Key(joined).FieldValue().FieldValue(family, val).Build()).Error()
 	if err != nil {
-		logger.Log("valkey").Error("InsertFamily: could not set password: %#v", err)
+		utils.Log("valkey").Error("InsertFamily: could not set password: %#v", err)
 		return err
 	}
 	return nil
@@ -48,20 +63,20 @@ func (vk *VK) InsertFamily(userId, family string, value bool) error {
 func (vk *VK) InvalidateUser(userId string) error {
 	var cursor uint64 = 0
 	ctx := context.Background()
-	joined := strings.Join([]string{"jwt", "subject", userId}, US)
+	joined := key("jwt", "subject", userId)
 	entries, err := vk.Client.Do(ctx, vk.Client.B().Hscan().Key(joined).Cursor(cursor).Novalues().Build()).ToArray()
 	if err != nil {
-		logger.Log("valkey").Error("InvalidateUser: got error when scanning for key %s err: %#v err.Error(): %s", joined, err, err.Error())
+		utils.Log("valkey").Error("InvalidateUser: got error when scanning for key %s err: %#v err.Error(): %s", joined, err, err.Error())
 		return err
 	}
 	for _, entry := range entries {
 		key, err := entry.ToString()
 		if err != nil {
-			logger.Log("valkey").Error("InvalidateUser: could not iterate over family entry %v err: %#v, err.Error(): %s", entry, err, err.Error())
+			utils.Log("valkey").Error("InvalidateUser: could not iterate over family entry %v err: %#v, err.Error(): %s", entry, err, err.Error())
 			return err
 		}
 		if err := vk.InsertFamily(key, userId, false); err != nil {
-			logger.Log("valkey").Error("InvalidateUser: could not insertfamily key %v err: %#v, err.Error(): %s", key, err, err.Error())
+			utils.Log("valkey").Error("InvalidateUser: could not insertfamily key %v err: %#v, err.Error(): %s", key, err, err.Error())
 			return err
 		}
 	}
@@ -70,11 +85,11 @@ func (vk *VK) InvalidateUser(userId string) error {
 
 func (vk *VK) SelectFamily(userId, family string) bool {
 	ctx := context.Background()
-	joined := strings.Join([]string{"jwt", "subject", userId, "family", family}, US)
+	joined := key("jwt", "subject", userId, "family", family)
 
 	valid, err := vk.Client.Do(ctx, vk.Client.B().Get().Key(joined).Build()).ToString()
 	if err != nil {
-		logger.Log("valkey").Error("SelectFamily: could not select family for userId: %s: err: %#v err.Error(): %s", userId, err, err.Error())
+		utils.Log("valkey").Error("SelectFamily: could not select family for userId: %s: err: %#v err.Error(): %s", userId, err, err.Error())
 		return false
 	}
 
@@ -85,7 +100,7 @@ func (vk *VK) SelectFamily(userId, family string) bool {
 	case "false":
 		val = false
 	default:
-		logger.Log("valkey").Error("SelectFamily: family was a non-boolean value @ key: %s value: %s", joined, valid)
+		utils.Log("valkey").Error("SelectFamily: family was a non-boolean value @ key: %s value: %s", joined, valid)
 	}
 
 	return val
@@ -94,10 +109,10 @@ func (vk *VK) SelectFamily(userId, family string) bool {
 func (vk *VK) InsertSubject(username string, subject string) error {
 	ctx := context.Background()
 
-	joined := strings.Join([]string{"username", username, "subject"}, US)
+	joined := key("username", username, "subject")
 	err := vk.Client.Do(ctx, vk.Client.B().Set().Key(joined).Value(subject).Build()).Error()
 	if err != nil {
-		logger.Log("valkey").Error("InsertUser: could not set subject: %#v", err)
+		utils.Log("valkey").Error("InsertUser: could not set subject: %#v", err)
 		return err
 	}
 	return nil
@@ -106,22 +121,22 @@ func (vk *VK) InsertSubject(username string, subject string) error {
 func (vk *VK) InsertSecret(subject, secret string) error {
 	ctx := context.Background()
 
-	joined := strings.Join([]string{"subject", subject, "secret"}, US)
+	joined := key("subject", subject, "secret")
 	err := vk.Client.Do(ctx, vk.Client.B().Set().Key(joined).Value(secret).Build()).Error()
 	if err != nil {
-		logger.Log("valkey").Error("InsertUser: could not set TOTP secret: %#v", err)
+		utils.Log("valkey").Error("InsertUser: could not set TOTP secret: %#v", err)
 		return err
 	}
 	return nil
 }
 
 func (vk *VK) SelectSecret(subject string) (string, error) {
-	joined := strings.Join([]string{"subject", subject, "secret"}, US)
+	joined := key("subject", subject, "secret")
 	ctx := context.Background()
 
 	subject, err := vk.Client.Do(ctx, vk.Client.B().Get().Key(joined).Build()).ToString()
 	if err != nil {
-		logger.Log("valkey").Error("SelectSubjectByUsername: could not find TOTP secret for subject %s err %#v err.Error(): %s", subject, err, err.Error())
+		utils.Log("valkey").Error("SelectSubjectByUsername: could not find TOTP secret for subject %s err %#v err.Error(): %s", subject, err, err.Error())
 		return "", err
 	}
 
@@ -131,22 +146,22 @@ func (vk *VK) SelectSecret(subject string) (string, error) {
 func (vk *VK) InsertUser(username string, password string) error {
 	ctx := context.Background()
 
-	joined := strings.Join([]string{"username", username, "password"}, US)
+	joined := key("username", username, "password")
 	err := vk.Client.Do(ctx, vk.Client.B().Set().Key(joined).Value(password).Build()).Error()
 	if err != nil {
-		logger.Log("valkey").Error("InsertUser: could not set password: %#v", err)
+		utils.Log("valkey").Error("InsertUser: could not set password: %#v", err)
 		return err
 	}
 	return nil
 }
 
 func (vk *VK) SelectSubjectByUsername(username string) (string, error) {
-	joined := strings.Join([]string{"username", username, "subject"}, US)
+	joined := key("username", username, "subject")
 	ctx := context.Background()
 
 	subject, err := vk.Client.Do(ctx, vk.Client.B().Get().Key(joined).Build()).ToString()
 	if err != nil {
-		logger.Log("valkey").Error("SelectSubjectByUsername: could not find userid for username %s err %#v err.Error(): %s", username, err, err.Error())
+		utils.Log("valkey").Error("SelectSubjectByUsername: could not find userid for username %s err %#v err.Error(): %s", username, err, err.Error())
 		return "", err
 	}
 
@@ -154,12 +169,12 @@ func (vk *VK) SelectSubjectByUsername(username string) (string, error) {
 }
 
 func (vk *VK) SelectPasswordByUsername(username string) (string, error) {
-	joined := strings.Join([]string{"username", username, "password"}, US)
+	joined := key("username", username, "password")
 	ctx := context.Background()
 
 	pass, err := vk.Client.Do(ctx, vk.Client.B().Get().Key(joined).Build()).ToString()
 	if err != nil {
-		logger.Log("valkey").Error("SelectPasswordByUsername: could not find password for username %s err %#v err.Error(): %s", username, err, err.Error())
+		utils.Log("valkey").Error("SelectPasswordByUsername: could not find password for username %s err %#v err.Error(): %s", username, err, err.Error())
 		return "", err
 	}
 

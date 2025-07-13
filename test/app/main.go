@@ -2,19 +2,51 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/nathan-hello/nat-auth/auth"
-	"github.com/nathan-hello/nat-auth/auth/user"
+	natauth "github.com/nathan-hello/nat-auth"
 
+	"github.com/nathan-hello/nat-auth/auth"
 	"github.com/nathan-hello/nat-auth/test/app/components"
+	"github.com/nathan-hello/nat-auth/ui"
+	"github.com/nathan-hello/nat-auth/web"
 )
 
 func main() {
-	middlewares, onClose := auth.NewNatAuth(loggerMiddleware, "pub.pem", "key.pem", "secret")
+	handlers, err := natauth.New(natauth.Params{
+		JwtConfig:    web.PasswordJwtParams{Secret: "secret"},
+		ValkeyUri:    "127.0.0.1:6379",
+		ValkeyPrefix: "app",
+		LogWriters:   []io.Writer{os.Stdout},
+		Theme: ui.Theme{
+			Primary: ui.ColorScheme{
+				Light: "#262626",
+				Dark:  "#262626",
+			},
+			Background: ui.ColorScheme{
+				Light: "#171717",
+				Dark:  "#171717",
+			},
+			Logo: ui.ColorScheme{
+				Light: "https://reluekiss.com/favicon.svg",
+				Dark:  "https://reluekiss.com/favicon.svg",
+			},
+			Title:   "Nat/e",
+			Favicon: "https://reluekiss.com/favicon.svg",
+			Radius:  "none",
+			Font: ui.Font{
+				Family: "Varela Round, sans-serif",
+				Scale:  "1",
+			},
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -22,13 +54,13 @@ func main() {
 	go func() {
 		<-sigChan
 		fmt.Printf("Received shutdown signal, closing connections...")
-		onClose()
+		handlers.OnClose()
 		fmt.Printf("Valkey client closed")
 		os.Exit(0)
 	}()
 
-	http.Handle("/", middlewares(HomeHandler))
-	http.Handle("/protected", middlewares(ProtectedHandler))
+	http.Handle("/", handlers.Middleware(HomeHandler))
+	http.Handle("/protected", handlers.Middleware(ProtectedHandler))
 
 	fmt.Println("Server starting on :3000")
 	if err := http.ListenAndServe(":3000", nil); err != nil {
@@ -37,17 +69,17 @@ func main() {
 }
 
 func ProtectedHandler(w http.ResponseWriter, r *http.Request) {
-	userId := user.GetUser(r)
-	if userId.Subject == "" || userId.Username == "" {
+	user := auth.GetUser(r)
+	if !user.Valid {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	components.Protected(userId.Subject).Render(r.Context(), w)
+	components.Protected(user.Subject).Render(r.Context(), w)
 }
 
 // HomeHandler handles the home route
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	userId := user.GetUser(r)
+	userId := auth.GetUser(r)
 	w.Header().Set("Content-Type", "text/html")
 	components.Root(userId.Subject).Render(r.Context(), w)
 }

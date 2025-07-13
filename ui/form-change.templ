@@ -1,0 +1,65 @@
+package ui
+
+import "github.com/nathan-hello/nat-auth/providers/password"
+
+templ Change(theme Theme, copy PasswordUICopy, state password.FormState) {
+	@layout(theme) {
+		<form data-component="form" method="post">
+			if len(state.Errors) > 0 {
+				@formAlert(copy, state.Errors, "danger")
+			}
+			@changeFormCode(copy)
+			@changeFormUpdate(copy)
+			<button data-component="button">{ copy.ButtonContinue }</button>
+		</form>
+		<form method="post">
+			<input type="hidden" name="action" value="code"/>
+			<input type="hidden" name="email" value={ state.Username }/>
+			<div data-component="form-footer">
+				<span>
+					{ copy.CodeReturn }
+					<a data-component="link" href={ locations.SignIn }>
+						{ copy.Login }
+					</a>
+				</span>
+				<button data-component="link">{ copy.CodeResend }</button>
+			</div>
+		</form>
+	}
+}
+
+templ changeFormUpdate(copy PasswordUICopy) {
+	<input type="hidden" name="action" value="update"/>
+	<input
+		data-component="input"
+		autofocus
+		type="password"
+		name="password"
+		placeholder={ copy.InputPassword }
+		required
+		autocomplete="new-password"
+	/>
+	<input
+		data-component="input"
+		type="password"
+		name="repeat"
+		required
+		placeholder={ copy.InputRepeat }
+		autocomplete="new-password"
+	/>
+}
+
+templ changeFormCode(copy PasswordUICopy) {
+	<input type="hidden" name="action" value="verify"/>
+	<input
+		data-component="input"
+		autofocus
+		name="code"
+		minlength="6"
+		maxlength="6"
+		required
+		placeholder={ copy.InputCode }
+		autocomplete="one-time-code"
+	/>
+	<button data-component="button">{ copy.ButtonContinue }</button>
+}

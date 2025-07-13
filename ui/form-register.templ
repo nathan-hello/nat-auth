@@ -1,0 +1,51 @@
+package ui
+
+import "github.com/nathan-hello/nat-auth/providers/password"
+
+templ Register(theme Theme, copy PasswordUICopy, state password.FormState) {
+	@layout(theme) {
+		<form data-component="form" method="post">
+			if len(state.Errors) > 0 {
+				@formAlert(copy, state.Errors, "danger")
+			}
+			<input type="hidden" name="action" value="register"/>
+			<input
+				data-component="input"
+				autofocus={ password.HasUsernameError(state.Errors) }
+				name="username"
+				if state.Username != "" && !password.HasUsernameError(state.Errors) {
+					value={ state.Username }
+				}
+				required
+				placeholder={ copy.InputEmail }
+			/>
+			<input
+				data-component="input"
+				autofocus={ password.HasPasswordError(state.Errors) }
+				type="password"
+				name="password"
+				placeholder={ copy.InputPassword }
+				required
+				autocomplete="new-password"
+			/>
+			<input
+				data-component="input"
+				type="password"
+				name="repeated"
+				required
+				autofocus={ password.HasRepeatedError(state.Errors) }
+				placeholder={ copy.InputRepeat }
+				autocomplete="new-password"
+			/>
+			<button data-component="button">{ copy.ButtonContinue }</button>
+			<div data-component="form-footer">
+				<span>
+					{ copy.LoginPrompt }
+					<a data-component="link" href={ locations.SignIn }>
+						{ copy.Login }
+					</a>
+				</span>
+			</div>
+		</form>
+	}
+}

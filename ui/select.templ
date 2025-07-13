@@ -1,0 +1,121 @@
+package ui
+
+type SelectProviderConfig struct {
+	Hide    bool
+	Display string
+}
+
+type SelectProps struct {
+	Providers map[string]SelectProviderConfig
+}
+
+func getProviderIcon(providerKey string) templ.Component {
+	switch providerKey {
+	case "github":
+		return iconGithub()
+	case "google":
+		return iconGoogle()
+	case "code":
+		return iconCode()
+	case "password":
+		return iconPassword()
+	case "twitch":
+		return iconTwitch()
+	case "apple":
+		return iconApple()
+	case "x":
+		return iconX()
+	case "microsoft":
+		return iconMicrosoft()
+	case "facebook":
+		return iconFacebook()
+	case "slack":
+		return iconSlack()
+	default:
+		return templ.NopComponent
+	}
+}
+
+func getProviderDisplay(providerKey, providerType string, config SelectProviderConfig) string {
+	if config.Display != "" {
+		return config.Display
+	}
+	
+	// Default display names
+	switch providerType {
+	case "twitch":
+		return "Twitch"
+	case "google":
+		return "Google"
+	case "github":
+		return "GitHub"
+	case "apple":
+		return "Apple"
+	case "x":
+		return "X"
+	case "facebook":
+		return "Facebook"
+	case "microsoft":
+		return "Microsoft"
+	case "slack":
+		return "Slack"
+	default:
+		return providerType
+	}
+}
+
+templ Select(theme Theme, providers map[string]string, props *SelectProps) {
+	@layout(theme) {
+	<div data-component="form">
+		for providerKey, providerType := range providers {
+			if !shouldHideProvider(providerKey, props) {
+				@selectProviderButton(providerKey, providerType, getProviderConfig(providerKey, props))
+			}
+		}
+	</div>
+	}
+}
+
+func shouldHideProvider(providerKey string, props *SelectProps) bool {
+	if props == nil {
+		return false
+	}
+	if config, exists := props.Providers[providerKey]; exists {
+		return config.Hide
+	}
+	return false
+}
+
+func getProviderConfig(providerKey string, props *SelectProps) SelectProviderConfig {
+	if props == nil {
+		return SelectProviderConfig{}
+	}
+	if config, exists := props.Providers[providerKey]; exists {
+		return config
+	}
+	return SelectProviderConfig{}
+}
+
+func hasProviderIcon(providerKey string) bool {
+	switch providerKey {
+	case "github", "google", "code", "password", "twitch", "apple", "x", "microsoft", "facebook", "slack":
+		return true
+	default:
+		return false
+	}
+}
+
+templ selectProviderButton(providerKey, providerType string, config SelectProviderConfig) {
+	<a
+		href={ templ.URL("/auth/" + providerKey + "/login") }
+		data-component="button"
+		data-color="ghost"
+	>
+		if hasProviderIcon(providerKey) {
+			<i data-slot="icon">
+				@getProviderIcon(providerKey)
+			</i>
+		}
+		Continue with { getProviderDisplay(providerKey, providerType, config) }
+	</a>
+} 

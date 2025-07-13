@@ -3,6 +3,8 @@ sql:
 - engine: sqlite
   schema: schema.sql
   queries: queries.sql
+  database:
+      uri: file://database.db
   gen:
     go:
       sql_package: database/sql

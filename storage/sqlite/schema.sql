@@ -1,24 +1,28 @@
-CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    username TEXT UNIQUE NOT NULL,
-    password_salt TEXT NOT NULL,
-    encrypted_password TEXT NOT NULL,
-    password_created_at TIMESTAMP NOT NULL
+-- Users table to store username and password
+CREATE TABLE users (
+    username TEXT PRIMARY KEY,
+    password TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS tokens (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    jwt_type TEXT NOT NULL,
-    jwt TEXT NOT NULL,
-    valid BOOLEAN NOT NULL,
-    family TEXT NOT NULL
+-- Subjects table to map username to subject (user id)  
+CREATE TABLE subjects (
+    username TEXT PRIMARY KEY,
+    subject TEXT NOT NULL UNIQUE,
+    FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS users_tokens (
-    user_id TEXT NOT NULL,
-    token_id INTEGER NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (token_id) REFERENCES tokens(id) ON DELETE CASCADE,
-    PRIMARY KEY (user_id, token_id)
+-- Secrets table to store TOTP secrets by subject
+CREATE TABLE secrets (
+    subject TEXT PRIMARY KEY,
+    secret TEXT NOT NULL,
+    FOREIGN KEY (subject) REFERENCES subjects(subject) ON DELETE CASCADE
 );
+
+-- Families table to store JWT family validity by subject and family
+CREATE TABLE families (
+    subject TEXT NOT NULL,
+    family TEXT NOT NULL,
+    valid BOOLEAN NOT NULL DEFAULT TRUE,
+    PRIMARY KEY (subject, family),
+    FOREIGN KEY (subject) REFERENCES subjects(subject) ON DELETE CASCADE
+); 

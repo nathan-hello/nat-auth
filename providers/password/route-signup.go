@@ -48,7 +48,8 @@ func (p PasswordHandler) SignUp_POST(w http.ResponseWriter, r *http.Request) {
 
 	web.CookieSetTokens(w, access, refresh)
 
-	web.HttpRedirect(w, r, p.Redirects.AfterSignUp, "/")
+	// TODO: introduce passwordhandler to Locations struct
+	web.HttpRedirect(w, r, p.Redirects.AfterSignUp, "/auth/totp")
 }
 
 func (p PasswordHandler) SignUp_Work(username, password, repeated string) (string, string, []error) {

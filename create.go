@@ -19,8 +19,7 @@ type Params struct {
 	JwtConfig             web.PasswordJwtParams
 	UsernameValidator     func(string) []error
 	Redirects             password.PasswordRedirects
-	ValkeyUri             string
-	ValkeyPrefix          string
+	Storage               storage.DbPassword
 	Theme                 ui.Theme
 	Locations             *web.Locations
 	LogWriters            []io.Writer
@@ -32,8 +31,8 @@ var defaultLocations = web.Locations{
 	Forgot:            "/auth/forgot",
 	Change:            "/auth/change",
 	Totp:              "/auth/totp",
-	SignOut:           "/auth/logout",
-	SignOutEverywhere: "/auth/logout-everywhere",
+	SignOut:           "/auth/signout",
+	SignOutEverywhere: "/auth/signout-everywhere",
 	Styles:            "/auth/styles.css",
 }
 
@@ -61,12 +60,6 @@ func New(params Params) (Handlers, error) {
 		return Handlers{}, err
 	}
 
-	store, err := storage.NewValkey(params.ValkeyUri, params.ValkeyPrefix)
-	if err != nil {
-		utils.Log("create").Error("error in NewValkey: %s", err.Error())
-		return Handlers{}, err
-	}
-
 	if params.Locations == nil {
 		params.Locations = &defaultLocations
 	}
@@ -78,7 +71,7 @@ func New(params Params) (Handlers, error) {
 	)
 	p := password.PasswordHandler{
 		UsernameValidate: params.UsernameValidator,
-		Database:         store,
+		Database:         params.Storage,
 		Ui:               pwui,
 		Redirects:        params.Redirects,
 	}
@@ -99,7 +92,6 @@ func New(params Params) (Handlers, error) {
 	route(params.Locations.Styles, cssHandler(styles))
 
 	var onClose = func() {
-		store.Client.Close()
 	}
 
 	var middleware = alice.New(web.MiddlewareAuth).ThenFunc

@@ -11,17 +11,24 @@ import (
 	natauth "github.com/nathan-hello/nat-auth"
 
 	"github.com/nathan-hello/nat-auth/auth"
+	"github.com/nathan-hello/nat-auth/storage"
 	"github.com/nathan-hello/nat-auth/test/app/components"
 	"github.com/nathan-hello/nat-auth/ui"
+	"github.com/nathan-hello/nat-auth/utils"
 	"github.com/nathan-hello/nat-auth/web"
 )
 
 func main() {
+	store, err := storage.NewValkey("127.0.0.1:6379", "app")
+	if err != nil {
+		utils.Log("create").Error("error in NewValkey: %s", err.Error())
+		panic(err)
+	}
+
 	handlers, err := natauth.New(natauth.Params{
-		JwtConfig:    web.PasswordJwtParams{Secret: "secret"},
-		ValkeyUri:    "127.0.0.1:6379",
-		ValkeyPrefix: "app",
-		LogWriters:   []io.Writer{os.Stdout},
+		JwtConfig:  web.PasswordJwtParams{Secret: "secret"},
+		Storage:    store,
+		LogWriters: []io.Writer{os.Stdout},
 		Theme: ui.Theme{
 			Primary: ui.ColorScheme{
 				Light: "#262626",
@@ -55,6 +62,7 @@ func main() {
 		<-sigChan
 		fmt.Printf("Received shutdown signal, closing connections...")
 		handlers.OnClose()
+		store.Client.Close()
 		fmt.Printf("Valkey client closed")
 		os.Exit(0)
 	}()

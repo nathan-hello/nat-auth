@@ -17,7 +17,17 @@ func (p PasswordHandler) HandlerTotp(w http.ResponseWriter, r *http.Request) {
 		p.Totp_POST(w, r)
 		return
 	}
+	if r.Method == "PATCH" {
+		p.Totp_PATCH(w, r)
+		return
+	}
+
 	w.WriteHeader(http.StatusMethodNotAllowed)
+}
+
+// TODO: on patch, update secret in db
+func (p PasswordHandler) Totp_PATCH(w http.ResponseWriter, r *http.Request) {
+
 }
 
 func (p PasswordHandler) Totp_GET(w http.ResponseWriter, r *http.Request) {
@@ -27,15 +37,18 @@ func (p PasswordHandler) Totp_GET(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secret, err := totp.GenerateSecret()
-	if err != nil {
-		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: []error{err}}, nil, "/", ""))
-		return
-	}
-	err = p.Database.InsertSecret(user.Subject, secret)
-	if err != nil {
-		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: []error{err}}, nil, "/", ""))
-		return
+	secret, err := p.Database.SelectSecret(user.Subject)
+	if err != nil || secret == "" {
+		secret, err = totp.GenerateSecret()
+		if err != nil {
+			w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: []error{err}}, nil, "/", ""))
+			return
+		}
+		err = p.Database.InsertSecret(user.Subject, secret)
+		if err != nil {
+			w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: []error{err}}, nil, "/", ""))
+			return
+		}
 	}
 
 	png, err := totp.QRTOTP(secret, user.Username)

@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/justinas/alice"
 	natauth "github.com/nathan-hello/nat-auth"
 
 	"github.com/nathan-hello/nat-auth/auth"
@@ -26,6 +27,7 @@ func main() {
 	}
 
 	handlers, err := natauth.New(natauth.Params{
+		TotpIssuer: "Localhost three thousand",
 		JwtConfig:  web.PasswordJwtParams{Secret: "secret"},
 		Storage:    store,
 		LogWriters: []io.Writer{os.Stdout},
@@ -67,8 +69,8 @@ func main() {
 		os.Exit(0)
 	}()
 
-	http.Handle("/", handlers.Middleware(HomeHandler))
-	http.Handle("/protected", handlers.Middleware(ProtectedHandler))
+	http.Handle("/", alice.New(handlers.Middleware).ThenFunc(HomeHandler))
+	http.Handle("/protected", alice.New(handlers.Middleware).ThenFunc(ProtectedHandler))
 
 	fmt.Println("Server starting on :3000")
 	if err := http.ListenAndServe(":3000", nil); err != nil {

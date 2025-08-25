@@ -12,7 +12,7 @@ templ Login(theme Theme, copy PasswordUICopy, state password.FormState) {
 				data-component="input"
 				name="username"
 				required
-				placeholder={ copy.InputEmail }
+				placeholder={ copy.InputUsername }
 				autofocus={ password.HasUsernameError(state.Errors) }
 				if state.Username != "" {
 					value={ state.Username }

@@ -69,8 +69,8 @@ func main() {
 		os.Exit(0)
 	}()
 
-	http.Handle("/", alice.New(handlers.Middleware).ThenFunc(HomeHandler))
-	http.Handle("/protected", alice.New(handlers.Middleware).ThenFunc(ProtectedHandler))
+	http.Handle("/", alice.New(handlers.MiddlewareAuth).ThenFunc(HomeHandler))
+	http.Handle("/protected", alice.New(handlers.MiddlewareAuth).ThenFunc(ProtectedHandler))
 
 	fmt.Println("Server starting on :3000")
 	if err := http.ListenAndServe(":3000", nil); err != nil {

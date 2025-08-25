@@ -44,11 +44,7 @@ func (s *Sloggers) Error(format string, args ...any) {
 
 var found = map[string]*Sloggers{}
 var writers = []io.Writer{}
-var level slog.Level
-
-func LogLevel(l slog.Level) {
-	level = l
-}
+var level slog.Level = slog.LevelDebug
 
 func LogNewOutput(w io.Writer) {
 	writers = append(writers, w)
@@ -73,12 +69,4 @@ func Log(key string) *Sloggers {
 	found[key] = s
 
 	return s
-}
-
-func DebugWrite(key string, i int, err error, data []byte) {
-	Log(key).Debug("wrote data length %d error: %s | data: %s", i, err, string(data))
-}
-
-func DebugRead(key string, i int, err error, data []byte) {
-	Log(key).Debug("read data length %d data: %s", len(data), string(data))
 }

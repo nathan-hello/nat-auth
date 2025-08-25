@@ -12,17 +12,26 @@ templ TOTPSetup(theme Theme, copy PasswordUICopy, state password.FormState, qr [
 			<input type="hidden" name="action" value="code"/>
 			<span>
 				TOTP is recommended in case you lose access to your account.
-				Add the QR code or secret key to your preferred OTP manager.
+				Add the QR code or secret key to your preferred TOTP manager.
 			</span>
 			<span>
 				Without a TOTP, you will lose access to your account if you forget your password, forever.
 			</span>
-			<img class="height: 25%; width: 25%;" src={ fmt.Sprintf("data:image/png;base64,%s", qr) }/>
-                        // TODO: make this div look nice with the colors
-			<div style="align-items: center; gap: 8px; padding: 12px; background: #f5f5f5; border-radius: 6px; border: 1px solid #e0e0e0; overflow-x: auto; ">
-				<span>HMAC-SHA256/30 seconds/6 digit</span>
-				<br/>
-				<code style="user-select: text; -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text;">{ totpSecret }</code>
+			<span>
+				You can come back to this page at any time to retrieve your TOTP secret. Do not share with anyone.
+			</span>
+			<img class="height: 20%; width: 20%;" src={ fmt.Sprintf("data:image/png;base64,%s", qr) }/>
+			<div data-component="totp">
+                                <span>Required settings:</span>
+				<ul>
+					<li>SHA256</li>
+					<li>30 seconds</li>
+					<li>6 digit</li>
+				</ul>
+				<div data-component="totp-secret">
+					{ totpSecret }
+				</div>
+                                // <div data-component="button">Copy</div>
 			</div>
 			<input
 				data-component="input"

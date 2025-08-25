@@ -54,40 +54,40 @@ func TOTPSetup(theme Theme, copy PasswordUICopy, state password.FormState, qr []
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<input type=\"hidden\" name=\"action\" value=\"code\"> <span>TOTP is recommended in case you lose access to your account. Add the QR code or secret key to your preferred OTP manager.</span> <span>Without a TOTP, you will lose access to your account if you forget your password, forever.</span> <img class=\"height: 25%; width: 25%;\" src=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<input type=\"hidden\" name=\"action\" value=\"code\"> <span>TOTP is recommended in case you lose access to your account. Add the QR code or secret key to your preferred TOTP manager.</span> <span>Without a TOTP, you will lose access to your account if you forget your password, forever.</span> <span>You can come back to this page at any time to retrieve your TOTP secret. Do not share with anyone.</span> <img class=\"height: 20%; width: 20%;\" src=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("data:image/png;base64,%s", qr))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/totp.templ`, Line: 20, Col: 90}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/totp.templ`, Line: 23, Col: 90}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"><div style=\"align-items: center; gap: 8px; padding: 12px; background: #f5f5f5; border-radius: 6px; border: 1px solid #e0e0e0; overflow-x: auto; \"><span>HMAC-SHA256/30 seconds/6 digit</span><br><code style=\"user-select: text; -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text;\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"><div data-component=\"totp\"><span>Required settings:</span><ul><li>SHA256</li><li>30 seconds</li><li>6 digit</li></ul><div data-component=\"totp-secret\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(totpSecret)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/totp.templ`, Line: 25, Col: 123}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/totp.templ`, Line: 32, Col: 17}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</code></div><input data-component=\"input\" autofocus type=\"text\" name=\"code\" inputmode=\"numeric\" autocomplete=\"one-time-code\" required placeholder=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div></div><input data-component=\"input\" autofocus type=\"text\" name=\"code\" inputmode=\"numeric\" autocomplete=\"one-time-code\" required placeholder=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(copy.TotpPlaceholder)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/totp.templ`, Line: 35, Col: 38}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/totp.templ`, Line: 44, Col: 38}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -100,7 +100,7 @@ func TOTPSetup(theme Theme, copy PasswordUICopy, state password.FormState, qr []
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(copy.TotpTest)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/totp.templ`, Line: 37, Col: 50}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/totp.templ`, Line: 46, Col: 50}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -113,7 +113,7 @@ func TOTPSetup(theme Theme, copy PasswordUICopy, state password.FormState, qr []
 			var templ_7745c5c3_Var7 templ.SafeURL
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinURLErrs(skipRedirectUrl)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/totp.templ`, Line: 38, Col: 52}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/totp.templ`, Line: 47, Col: 52}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -126,7 +126,7 @@ func TOTPSetup(theme Theme, copy PasswordUICopy, state password.FormState, qr []
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(copy.TotpSkip)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/totp.templ`, Line: 38, Col: 70}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/totp.templ`, Line: 47, Col: 70}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {

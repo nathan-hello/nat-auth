@@ -21,14 +21,14 @@ type PasswordUICopy struct {
 	ForgotPrompt        string
 	CodeResend          string
 	CodeReturn          string
-	InputEmail          string
+	InputUsername       string
 	InputPassword       string
 	InputCode           string
 	InputRepeat         string
 	ButtonContinue      string
 	TotpTest            string
 	TotpSkip            string
-	EmailPlaceholder    string
+	UsernamePlaceholder string
 	TotpInfo            string
 	TotpPlaceholder     string
 	Error               map[error]string
@@ -71,12 +71,12 @@ func DefaultPasswordUICopy() PasswordUICopy {
 		ForgotPrompt:        "Forgot password?",
 		CodeResend:          "Resend code",
 		CodeReturn:          "Back to",
-		InputEmail:          "Email",
+		InputUsername:          "Username",
 		InputPassword:       "Password",
 		InputCode:           "Code",
 		InputRepeat:         "Repeat password",
 		ButtonContinue:      "Continue",
-		EmailPlaceholder:    "Email",
+		UsernamePlaceholder:    "Username",
 		TotpInfo:            "Use your TOTP to auth.",
 		TotpPlaceholder:     "Code",
 		Error: map[error]string{
@@ -90,6 +90,7 @@ func DefaultPasswordUICopy() PasswordUICopy {
 			password.ErrPassNoMatch:           "Passwords do not match.",
 			password.ErrTOTPMismatch:          "TOTP does not match.",
 			password.ErrInternalServer:        "An error occurred. Please try again.",
+			password.ErrTotpNotFound:          "Internal Server Error",
 		},
 	}
 }

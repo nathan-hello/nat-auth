@@ -2,6 +2,7 @@ package password
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/nathan-hello/nat-auth/auth"
 	"github.com/nathan-hello/nat-auth/providers/totp"
@@ -38,6 +39,7 @@ func (p PasswordHandler) Totp_GET(w http.ResponseWriter, r *http.Request) {
 	}
 
 	secret, err := p.Database.SelectSecret(user.Subject)
+
 	if err != nil || secret == "" {
 		secret, err = totp.GenerateSecret()
 		if err != nil {
@@ -51,7 +53,7 @@ func (p PasswordHandler) Totp_GET(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	png, err := totp.QRTOTP(secret, user.Username)
+	qr, err := totp.QRTOTP(secret, user.Username, p.TotpIssuer)
 	if err != nil {
 		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: []error{err}}, nil, "/", ""))
 		return
@@ -65,29 +67,36 @@ func (p PasswordHandler) Totp_GET(w http.ResponseWriter, r *http.Request) {
 		redirectUrl = "/"
 	}
 
-	w.Write(p.Ui.HtmlPageTotp(r, FormState{}, png, redirectUrl, secret))
+	w.Write(p.Ui.HtmlPageTotp(r, FormState{}, qr, redirectUrl, secret))
 }
 
 func (p PasswordHandler) Totp_POST(w http.ResponseWriter, r *http.Request) {
 	user := auth.GetUser(r)
+
 	if !user.Valid {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-	if err := r.ParseForm(); err != nil {
-		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: []error{err}}, nil, "/", ""))
-		return
-	}
-	otp := r.FormValue("code")
 
 	secret, err := p.Database.SelectSecret(user.Subject)
 	if err != nil {
-		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: []error{err}}, nil, "/", ""))
+		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: []error{ErrInternalServer}}, nil, "/", ""))
+		return
+	}
+	qr, err := totp.QRTOTP(secret, user.Username, p.TotpIssuer)
+	if err != nil {
+		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: []error{ErrInternalServer}}, nil, "/", ""))
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: []error{ErrInternalServer}}, qr, "/", ""))
 		return
 	}
 
+	otp := strings.TrimSpace(r.FormValue("code"))
+
 	if totp.CheckTOTP(otp, secret) != nil {
-		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: []error{ErrTOTPMismatch}}, nil, "/", ""))
+		w.Write(p.Ui.HtmlPageTotp(r, FormState{Errors: []error{ErrTOTPMismatch}}, qr, "/", secret))
 		return
 	}
 

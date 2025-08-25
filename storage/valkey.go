@@ -13,7 +13,7 @@ import (
 
 var US = "\x1f"
 var prefix string
-var version = "1"
+var version = "version1"
 
 type VK struct {
 	Client valkey.Client
@@ -26,9 +26,6 @@ func NewValkey(addr string, valkeyPrefix string) (*VK, error) {
 		return nil, err
 	}
 	if valkeyPrefix != "" {
-		if !strings.HasSuffix(valkeyPrefix, US) {
-			valkeyPrefix = valkeyPrefix + US
-		}
 		prefix = valkeyPrefix
 
 	} else {
@@ -126,7 +123,8 @@ func (vk *VK) InsertSecret(subject, secret string) error {
 	ctx := context.Background()
 
 	joined := key("subject", subject, "secret")
-	err := vk.Client.Do(ctx, vk.Client.B().Set().Key(joined).Value(secret).Build()).Error()
+	cmd := vk.Client.B().Set().Key(joined).Value(secret).Build()
+	err := vk.Client.Do(ctx, cmd).Error()
 	if err != nil {
 		utils.Log("valkey").Error("InsertUser: could not set TOTP secret: %#v", err)
 		return err
@@ -134,13 +132,13 @@ func (vk *VK) InsertSecret(subject, secret string) error {
 	return nil
 }
 
+// this will error when user first signs up, because they don't have a secret yet!
 func (vk *VK) SelectSecret(subject string) (string, error) {
 	joined := key("subject", subject, "secret")
 	ctx := context.Background()
 
 	subject, err := vk.Client.Do(ctx, vk.Client.B().Get().Key(joined).Build()).ToString()
 	if err != nil {
-		utils.Log("valkey").Error("SelectSubjectByUsername: could not find TOTP secret for subject %s err %#v err.Error(): %s", subject, err, err.Error())
 		return "", err
 	}
 
@@ -159,13 +157,13 @@ func (vk *VK) InsertUser(username string, password string) error {
 	return nil
 }
 
+// this will error when user first signs up, because they don't have a subject yet!
 func (vk *VK) SelectSubjectByUsername(username string) (string, error) {
 	joined := key("username", username, "subject")
 	ctx := context.Background()
 
 	subject, err := vk.Client.Do(ctx, vk.Client.B().Get().Key(joined).Build()).ToString()
 	if err != nil {
-		utils.Log("valkey").Error("SelectSubjectByUsername: could not find userid for username %s err %#v err.Error(): %s", username, err, err.Error())
 		return "", err
 	}
 

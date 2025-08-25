@@ -17,6 +17,7 @@ var (
 	ErrBadLogin              = errors.New("generic: bad login")
 	ErrTOTPMismatch          = errors.New("TOTP: code mismatch")
 	ErrInternalServer        = errors.New("generic: internal server error")
+	ErrTotpNotFound          = errors.New("TOTP: could not find user info")
 )
 
 var passwordErrors = []error{
@@ -46,6 +47,19 @@ var userErrors = []error{
 	ErrPassNoMatch,
 	ErrBadLogin,
 	ErrTOTPMismatch,
+}
+
+var totpErrors = []error{
+	ErrTotpNotFound,
+}
+
+func IsTotpError(err error) bool {
+	for _, e := range totpErrors {
+		if errors.Is(err, e) {
+			return true
+		}
+	}
+	return false
 }
 
 func IsPasswordError(err error) bool {
@@ -99,6 +113,12 @@ func HasPasswordError(errs []error) bool {
 func HasUsernameError(errs []error) bool {
 	return slices.ContainsFunc(errs, func(err error) bool {
 		return IsUsernameError(err)
+	})
+}
+
+func HasTotpError(errs []error) bool {
+	return slices.ContainsFunc(errs, func(err error) bool {
+		return IsTotpError(err)
 	})
 }
 

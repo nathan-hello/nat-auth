@@ -7,6 +7,7 @@ import (
 )
 
 type PasswordHandler struct {
+	TotpIssuer       string
 	UsernameValidate func(s string) []error
 	Database         storage.DbPassword
 	Ui               PasswordUi

@@ -23,6 +23,7 @@ type Params struct {
 	Theme                 ui.Theme
 	Locations             *web.Locations
 	LogWriters            []io.Writer
+	TotpIssuer            string
 }
 
 var defaultLocations = web.Locations{
@@ -37,8 +38,8 @@ var defaultLocations = web.Locations{
 }
 
 type Handlers struct {
-	Middleware func(http.HandlerFunc) http.Handler
-	OnClose    func()
+	MiddlewareAuth func(http.Handler) http.Handler
+	OnClose        func()
 }
 
 func New(params Params) (Handlers, error) {
@@ -74,6 +75,7 @@ func New(params Params) (Handlers, error) {
 		Database:         params.Storage,
 		Ui:               pwui,
 		Redirects:        params.Redirects,
+		TotpIssuer:       params.TotpIssuer,
 	}
 
 	route := func(s string, handler http.HandlerFunc) {
@@ -94,11 +96,9 @@ func New(params Params) (Handlers, error) {
 	var onClose = func() {
 	}
 
-	var middleware = alice.New(web.MiddlewareAuth).ThenFunc
-
 	return Handlers{
-		Middleware: middleware,
-		OnClose:    onClose,
+		MiddlewareAuth: web.MiddlewareAuth,
+		OnClose:        onClose,
 	}, nil
 
 }

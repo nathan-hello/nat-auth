@@ -26,9 +26,13 @@ func NewValkey(addr string, valkeyPrefix string) (*VK, error) {
 		return nil, err
 	}
 	if valkeyPrefix != "" {
+		if !strings.HasSuffix(valkeyPrefix, US) {
+			valkeyPrefix = valkeyPrefix + US
+		}
 		prefix = valkeyPrefix
+
 	} else {
-		prefix = "natauth"
+		prefix = "natauth" + US
 	}
 
 	return &VK{Client: client}, nil

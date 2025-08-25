@@ -82,10 +82,9 @@ func ProtectedHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	components.Protected(user.Subject).Render(r.Context(), w)
+	components.Protected(user.Username).Render(r.Context(), w)
 }
 
-// HomeHandler handles the home route
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	userId := auth.GetUser(r)
 	w.Header().Set("Content-Type", "text/html")

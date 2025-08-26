@@ -29,12 +29,12 @@ func (p PasswordHandler) HandlerChange(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p PasswordHandler) ChangePass_GET(w http.ResponseWriter, r *http.Request) {
-	w.Write(p.Ui.HtmlPageChange(r, FormState{}))
+	w.Write(p.Ui.HtmlPageChange(r, AuthFormState{}))
 }
 
 func (p PasswordHandler) ChangePass_POST(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		w.Write(p.Ui.HtmlPageChange(r, FormState{Errors: []error{err}}))
+		w.Write(p.Ui.HtmlPageChange(r, AuthFormState{Errors: []error{err}}))
 		return
 	}
 
@@ -43,7 +43,7 @@ func (p PasswordHandler) ChangePass_POST(w http.ResponseWriter, r *http.Request)
 
 	err := p.ChangePass_Work(auth.GetUser(r).Username, password, repeated)
 	if err != nil {
-		w.Write(p.Ui.HtmlPageChange(r, FormState{Errors: []error{err}}))
+		w.Write(p.Ui.HtmlPageChange(r, AuthFormState{Errors: []error{err}}))
 		return
 	}
 
@@ -56,7 +56,7 @@ func (p PasswordHandler) ChangePass_Work(username, password, repeated string) er
 		return err
 	}
 	if password != repeated {
-		return ErrPassNoMatch
+		return web.ErrPassNoMatch
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)

@@ -28,7 +28,7 @@ func main() {
 
 	handlers, err := natauth.New(natauth.Params{
 		TotpIssuer: "Localhost three thousand",
-		JwtConfig:  web.PasswordJwtParams{Secret: "secret"},
+		JwtParams:  web.PasswordJwtParams{Secret: "secret"},
 		Storage:    store,
 		LogWriters: []io.Writer{os.Stdout},
 		Theme: ui.Theme{

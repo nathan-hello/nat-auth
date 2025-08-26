@@ -3,6 +3,8 @@ package password
 import (
 	"regexp"
 	"strings"
+
+	"github.com/nathan-hello/nat-auth/web"
 )
 
 func sanitizeInput(input string) string {
@@ -24,13 +26,13 @@ func defaultUsernameValidate(username string) []error {
 	username = sanitizeInput(username)
 
 	if len(username) < 3 {
-		errs = append(errs, ErrUsernameTooShort)
+		errs = append(errs, web.ErrUsernameTooShort)
 	}
 	if len(username) > 32 {
-		errs = append(errs, ErrUsernameTooLong)
+		errs = append(errs, web.ErrUsernameTooLong)
 	}
 	if !usernameRegex.MatchString(username) {
-		errs = append(errs, ErrUsernameInvalidFormat)
+		errs = append(errs, web.ErrUsernameInvalidFormat)
 	}
 
 	return errs
@@ -40,10 +42,10 @@ func passwordValidate(password string) error {
 	bits := []byte(password)
 
 	if len(bits) < 6 {
-		return ErrPasswordTooShort
+		return web.ErrPasswordTooShort
 	}
 	if len(bits) > 72 {
-		return ErrPasswordTooLong
+		return web.ErrPasswordTooLong
 	}
 
 	return nil

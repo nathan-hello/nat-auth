@@ -23,12 +23,12 @@ func (p PasswordHandler) HandlerSignIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p PasswordHandler) SignIn_GET(w http.ResponseWriter, r *http.Request) {
-	w.Write(p.Ui.HtmlPageSignIn(r, FormState{}))
+	w.Write(p.Ui.HtmlPageSignIn(r, AuthFormState{}))
 }
 
 func (p PasswordHandler) SignIn_POST(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		w.Write(p.Ui.HtmlPageSignIn(r, FormState{Errors: []error{err}}))
+		w.Write(p.Ui.HtmlPageSignIn(r, AuthFormState{Errors: []error{err}}))
 		return
 	}
 
@@ -37,7 +37,7 @@ func (p PasswordHandler) SignIn_POST(w http.ResponseWriter, r *http.Request) {
 
 	access, refresh, err := p.SignIn_Work(username, password)
 	if err != nil {
-		w.Write(p.Ui.HtmlPageSignIn(r, FormState{Errors: []error{err}}))
+		w.Write(p.Ui.HtmlPageSignIn(r, AuthFormState{Errors: []error{err}}))
 		return
 	}
 
@@ -49,12 +49,12 @@ func (p PasswordHandler) SignIn_POST(w http.ResponseWriter, r *http.Request) {
 func (p PasswordHandler) SignIn_Work(username, password string) (string, string, error) {
 	dbPassword, err := p.Database.SelectPasswordByUsername(username)
 	if err != nil {
-		return "", "", ErrBadLogin
+		return "", "", web.ErrBadLogin
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(dbPassword), []byte(password))
 	if err != nil {
-		return "", "", ErrBadLogin
+		return "", "", web.ErrBadLogin
 	}
 
 	subject, err := p.Database.SelectSubjectByUsername(username)

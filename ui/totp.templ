@@ -2,10 +2,10 @@ package ui
 
 import (
 	"fmt"
-	"github.com/nathan-hello/nat-auth/providers/password"
+	"github.com/nathan-hello/nat-auth/providers/totp"
 )
 
-templ TOTPSetup(theme Theme, copy PasswordUICopy, state password.FormState, qr []byte, skipRedirectUrl string, totpSecret string) {
+templ TOTPSetup(theme Theme, copy PasswordUICopy, state totp.TotpFormState, qr []byte, skipRedirectUrl string, totpSecret string) {
 	@layout(theme) {
 		<form data-component="form" method="post">
 			@formAlert(copy, state.Errors, "danger")

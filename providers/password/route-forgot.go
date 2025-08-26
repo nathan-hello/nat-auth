@@ -21,13 +21,13 @@ func (p PasswordHandler) HandlerForgot(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p PasswordHandler) Forgot_GET(w http.ResponseWriter, r *http.Request) {
-	w.Write(p.Ui.HtmlPageForgot(r, FormState{}))
+	w.Write(p.Ui.HtmlPageForgot(r, AuthFormState{}))
 }
 
 func (p PasswordHandler) Forgot_POST(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		w.WriteHeader(400)
-		w.Write(p.Ui.HtmlPageForgot(r, FormState{Errors: []error{err}}))
+		w.Write(p.Ui.HtmlPageForgot(r, AuthFormState{Errors: []error{err}}))
 		utils.Log("forgot-handler").Error("error parsing form: %#v", err.Error())
 		return
 	}
@@ -37,28 +37,28 @@ func (p PasswordHandler) Forgot_POST(w http.ResponseWriter, r *http.Request) {
 	subject, err := p.Database.SelectSubjectByUsername(username)
 	if err != nil {
 		utils.Log("forgot-handler").Error("error selecting subject: %#v", err.Error())
-		w.Write(p.Ui.HtmlPageForgot(r, FormState{Errors: []error{err}}))
+		w.Write(p.Ui.HtmlPageForgot(r, AuthFormState{Errors: []error{err}}))
 		return
 	}
 
 	secret, err := p.Database.SelectSecret(subject)
 	if err != nil {
 		utils.Log("forgot-handler").Error("error selecting secret: %#v", err.Error())
-		w.Write(p.Ui.HtmlPageForgot(r, FormState{Errors: []error{err}}))
+		w.Write(p.Ui.HtmlPageForgot(r, AuthFormState{Errors: []error{err}}))
 		return
 	}
 
 	err = totp.CheckTOTP(code, secret)
 	if err != nil {
 		utils.Log("forgot-handler").Error("error checking TOTP: %#v", err.Error())
-		w.Write(p.Ui.HtmlPageForgot(r, FormState{Errors: []error{ErrTOTPMismatch}}))
+		w.Write(p.Ui.HtmlPageForgot(r, AuthFormState{Errors: []error{web.ErrTOTPMismatch}}))
 		return
 	}
 
 	access, refresh, _, err := web.NewTokenPair(web.JwtParams{Subject: subject, UserName: username})
 	if err != nil {
 		utils.Log("forgot-handler").Error("error creating token pair: %#v", err.Error())
-		w.Write(p.Ui.HtmlPageForgot(r, FormState{Errors: []error{err}}))
+		w.Write(p.Ui.HtmlPageForgot(r, AuthFormState{Errors: []error{err}}))
 		return
 	}
 

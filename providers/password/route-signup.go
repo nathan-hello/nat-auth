@@ -24,7 +24,7 @@ func (p PasswordHandler) HandlerSignUp(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p PasswordHandler) SignUp_GET(w http.ResponseWriter, r *http.Request) {
-	w.Write(p.Ui.HtmlPageSignUp(r, FormState{}))
+	w.Write(p.Ui.HtmlPageSignUp(r, AuthFormState{}))
 }
 
 func (p PasswordHandler) SignUp_POST(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +42,7 @@ func (p PasswordHandler) SignUp_POST(w http.ResponseWriter, r *http.Request) {
 
 	if len(errs) > 0 {
 		utils.Log("register-handler").Error("postRegister failed: %#v", errs)
-		w.Write(p.Ui.HtmlPageSignUp(r, FormState{Username: username, Errors: errs}))
+		w.Write(p.Ui.HtmlPageSignUp(r, AuthFormState{Username: username, Errors: errs}))
 		return
 	}
 
@@ -64,14 +64,14 @@ func (p PasswordHandler) SignUp_Work(username, password, repeated string) (strin
 		errs = append(errs, err)
 	}
 	if password != repeated {
-		errs = append(errs, ErrPassNoMatch)
+		errs = append(errs, web.ErrPassNoMatch)
 	}
 
 	// Does username already exist?
 	_, err = p.Database.SelectSubjectByUsername(username)
 	if err == nil {
 		utils.Log("post-register").Error("username already exists: %s", username)
-		errs = append(errs, ErrUsernameTaken)
+		errs = append(errs, web.ErrUsernameTaken)
 		return "", "", errs
 	}
 

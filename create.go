@@ -4,26 +4,45 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"reflect"
 
 	"github.com/justinas/alice"
 	"github.com/nathan-hello/nat-auth/providers/password"
+	"github.com/nathan-hello/nat-auth/providers/totp"
 	"github.com/nathan-hello/nat-auth/storage"
 	"github.com/nathan-hello/nat-auth/ui"
 	"github.com/nathan-hello/nat-auth/utils"
 	"github.com/nathan-hello/nat-auth/web"
 )
 
+type PasswordParams struct {
+	UsernameValidator     func(string) []error
+	JwtSecret             string
+	JwePublicKeyPath      string
+	JwePrivateKeyPath     string
+	RedirectBeforeSignUp  password.RedirectFunc
+	RedirectBeforeSignIn  password.RedirectFunc
+	RedirectBeforeSignOut password.RedirectFunc
+	RedirectAfterSignUp   password.RedirectFunc
+	RedirectAfterSignIn   password.RedirectFunc
+	RedirectAfterSignOut  password.RedirectFunc
+}
+
+type TotpParams struct {
+	PrivateKeyPath string
+	Issuer         string
+}
+
 type Params struct {
 	MiddlewaresBeforeAuth []alice.Constructor
 	MiddlewaresAfterAuth  []alice.Constructor
-	JwtConfig             web.PasswordJwtParams
-	UsernameValidator     func(string) []error
-	Redirects             password.PasswordRedirects
 	Storage               storage.DbPassword
 	Theme                 ui.Theme
 	Locations             *web.Locations
 	LogWriters            []io.Writer
-	TotpIssuer            string
+	PasswordParams        PasswordParams
+	TotpParams            TotpParams
+	Ui                    Ui
 }
 
 var defaultLocations = web.Locations{
@@ -52,11 +71,15 @@ func New(params Params) (Handlers, error) {
 		params.Locations = &defaultLocations
 	}
 
-	if params.JwtConfig.Secret == "" {
+	if params.PasswordParams.JwtSecret == "" {
 		return Handlers{}, errors.New("password provider requires a secret")
 	}
 
-	err := web.InitJwt(params.JwtConfig)
+	err := web.InitJwt(web.PasswordJwtParams{
+		Secret:         params.PasswordParams.JwtSecret,
+		PublicKeyPath:  params.PasswordParams.JwePublicKeyPath,
+		PrivateKeyPath: params.PasswordParams.JwePrivateKeyPath,
+	})
 	if err != nil {
 		return Handlers{}, err
 	}
@@ -65,33 +88,48 @@ func New(params Params) (Handlers, error) {
 		params.Locations = &defaultLocations
 	}
 
-	pwui, styles := ui.New(
-		params.Theme,
-		ui.DefaultPasswordUICopy(),
-		*params.Locations,
-	)
+	asdfui := params.Ui
+
+	uiVal := reflect.ValueOf(asdfui)
+	uiZero := reflect.Zero(uiVal.Type())
+
+	if reflect.DeepEqual(uiVal.Interface(), uiZero.Interface()) {
+		var styles []byte
+		asdfui, styles = ui.New(
+			params.Theme,
+			asdfui.DefaultPasswordUICopy(),
+			*params.Locations,
+		)
+		route(params.Locations.Styles, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, cssHandler(styles))
+	}
+
 	p := password.PasswordHandler{
-		UsernameValidate: params.UsernameValidator,
+		UsernameValidate: params.PasswordParams.UsernameValidator,
 		Database:         params.Storage,
 		Ui:               pwui,
-		Redirects:        params.Redirects,
-		TotpIssuer:       params.TotpIssuer,
+		Redirects: password.PasswordRedirects{
+			BeforeSignUp:  params.PasswordParams.RedirectAfterSignUp,
+			BeforeSignIn:  params.PasswordParams.RedirectBeforeSignIn,
+			BeforeSignOut: params.PasswordParams.RedirectBeforeSignOut,
+			AfterSignUp:   params.PasswordParams.RedirectAfterSignUp,
+			AfterSignIn:   params.PasswordParams.RedirectAfterSignIn,
+			AfterSignOut:  params.PasswordParams.RedirectAfterSignOut,
+		},
 	}
 
-	route := func(s string, handler http.HandlerFunc) {
-		var internal = []alice.Constructor{web.MiddlewareAuth, web.RejectSubroute(s)}
-		chain := alice.New(append(append(params.MiddlewaresBeforeAuth, internal...), params.MiddlewaresAfterAuth...)...).ThenFunc(handler)
-		http.Handle(s, chain)
+	t := totp.TotpHandler{
+		Issuer:   params.TotpParams.Issuer,
+		Database: params.Storage,
+		Ui:       pwui,
 	}
 
-	route(params.Locations.SignIn, p.HandlerSignIn)
-	route(params.Locations.SignUp, p.HandlerSignUp)
-	route(params.Locations.Forgot, p.HandlerForgot)
-	route(params.Locations.Change, p.HandlerChange)
-	route(params.Locations.Totp, p.HandlerTotp)
-	route(params.Locations.SignOut, p.HandlerSignOut)
-	route(params.Locations.SignOutEverywhere, p.HandlerSignOutEverywhere)
-	route(params.Locations.Styles, cssHandler(styles))
+	route(params.Locations.SignIn, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, p.HandlerSignIn)
+	route(params.Locations.SignUp, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, p.HandlerSignUp)
+	route(params.Locations.Forgot, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, p.HandlerForgot)
+	route(params.Locations.Change, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, p.HandlerChange)
+	route(params.Locations.Totp, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, p.HandlerTotp)
+	route(params.Locations.SignOut, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, p.HandlerSignOut)
+	route(params.Locations.SignOutEverywhere, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, p.HandlerSignOutEverywhere)
 
 	var onClose = func() {
 	}
@@ -101,6 +139,12 @@ func New(params Params) (Handlers, error) {
 		OnClose:        onClose,
 	}, nil
 
+}
+
+func route(s string, beforeAuth []alice.Constructor, afterAuth []alice.Constructor, handler http.HandlerFunc) {
+	var internal = []alice.Constructor{web.MiddlewareAuth, web.RejectSubroute(s)}
+	chain := alice.New(append(append(beforeAuth, internal...), afterAuth...)...).ThenFunc(handler)
+	http.Handle(s, chain)
 }
 
 func cssHandler(file []byte) http.HandlerFunc {

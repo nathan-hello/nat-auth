@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"reflect"
 
 	"github.com/justinas/alice"
 	"github.com/nathan-hello/nat-auth/providers/password"
@@ -38,11 +37,9 @@ type Params struct {
 	MiddlewaresAfterAuth  []alice.Constructor
 	Storage               storage.DbPassword
 	Theme                 ui.Theme
-	Locations             *web.Locations
 	LogWriters            []io.Writer
 	PasswordParams        PasswordParams
 	TotpParams            TotpParams
-	Ui                    Ui
 }
 
 var defaultLocations = web.Locations{
@@ -58,17 +55,12 @@ var defaultLocations = web.Locations{
 
 type Handlers struct {
 	MiddlewareAuth func(http.Handler) http.Handler
-	OnClose        func()
 }
 
 func New(params Params) (Handlers, error) {
 
 	for _, w := range params.LogWriters {
 		utils.LogNewOutput(w)
-	}
-
-	if params.Locations == nil {
-		params.Locations = &defaultLocations
 	}
 
 	if params.PasswordParams.JwtSecret == "" {
@@ -84,29 +76,19 @@ func New(params Params) (Handlers, error) {
 		return Handlers{}, err
 	}
 
-	if params.Locations == nil {
-		params.Locations = &defaultLocations
-	}
+	var styles []byte
+	uiParams := ui.New(
+		params.Theme,
+		ui.DefaultPasswordUICopy(),
+		defaultLocations,
+	)
 
-	asdfui := params.Ui
-
-	uiVal := reflect.ValueOf(asdfui)
-	uiZero := reflect.Zero(uiVal.Type())
-
-	if reflect.DeepEqual(uiVal.Interface(), uiZero.Interface()) {
-		var styles []byte
-		asdfui, styles = ui.New(
-			params.Theme,
-			asdfui.DefaultPasswordUICopy(),
-			*params.Locations,
-		)
-		route(params.Locations.Styles, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, cssHandler(styles))
-	}
+	route(defaultLocations.Styles, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, cssHandler(styles))
 
 	p := password.PasswordHandler{
 		UsernameValidate: params.PasswordParams.UsernameValidator,
 		Database:         params.Storage,
-		Ui:               pwui,
+		Ui:               uiParams.PasswordUi,
 		Redirects: password.PasswordRedirects{
 			BeforeSignUp:  params.PasswordParams.RedirectAfterSignUp,
 			BeforeSignIn:  params.PasswordParams.RedirectBeforeSignIn,
@@ -120,23 +102,19 @@ func New(params Params) (Handlers, error) {
 	t := totp.TotpHandler{
 		Issuer:   params.TotpParams.Issuer,
 		Database: params.Storage,
-		Ui:       pwui,
+		Ui:       uiParams.TotpUi,
 	}
 
-	route(params.Locations.SignIn, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, p.HandlerSignIn)
-	route(params.Locations.SignUp, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, p.HandlerSignUp)
-	route(params.Locations.Forgot, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, p.HandlerForgot)
-	route(params.Locations.Change, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, p.HandlerChange)
-	route(params.Locations.Totp, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, p.HandlerTotp)
-	route(params.Locations.SignOut, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, p.HandlerSignOut)
-	route(params.Locations.SignOutEverywhere, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, p.HandlerSignOutEverywhere)
-
-	var onClose = func() {
-	}
+	route(defaultLocations.SignIn, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, p.HandlerSignIn)
+	route(defaultLocations.SignUp, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, p.HandlerSignUp)
+	route(defaultLocations.Forgot, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, p.HandlerForgot)
+	route(defaultLocations.Change, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, p.HandlerChange)
+	route(defaultLocations.Totp, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, t.HandlerTotp)
+	route(defaultLocations.SignOut, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, p.HandlerSignOut)
+	route(defaultLocations.SignOutEverywhere, params.MiddlewaresBeforeAuth, params.MiddlewaresAfterAuth, p.HandlerSignOutEverywhere)
 
 	return Handlers{
 		MiddlewareAuth: web.MiddlewareAuth,
-		OnClose:        onClose,
 	}, nil
 
 }

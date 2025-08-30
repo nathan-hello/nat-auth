@@ -4,7 +4,7 @@ package totp
 import (
 	"crypto/hmac"
 	"crypto/rand"
-	"crypto/sha256"
+	"crypto/sha1"
 	"crypto/subtle"
 	"encoding/base32"
 	"encoding/binary"
@@ -66,7 +66,7 @@ func GenerateTOTPCode(opts GenerateOptions) (string, int64, error) {
 	}
 
 	buf := make([]byte, sumByteLength)
-	mac := hmac.New(sha256.New, secretBytes) // default to sha256 because 1 is insecure and 512 isn't needed
+	mac := hmac.New(sha1.New, secretBytes) 
 
 	binary.BigEndian.PutUint64(buf, timer)
 	_, _ = mac.Write(buf)

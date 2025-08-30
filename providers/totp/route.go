@@ -15,6 +15,7 @@ type TotpHandler struct {
 }
 
 type TotpFormState struct {
+	Success bool
 	Errors []error
 }
 

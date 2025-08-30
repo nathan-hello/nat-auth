@@ -5,7 +5,7 @@ import (
 	"github.com/nathan-hello/nat-auth/providers/totp"
 )
 
-templ TOTPSetup(theme Theme, copy PasswordUICopy, state totp.TotpFormState, qr []byte, skipRedirectUrl string, totpSecret string) {
+templ TOTPSetup(theme Theme, copy PasswordUICopy, state totp.TotpFormState, qr []byte, skipRedirectUrl string, rerollUrl string, totpSecret string) {
 	@layout(theme) {
 		<form data-component="form" method="post">
 			@formAlert(copy, state.Errors, "danger")
@@ -22,16 +22,15 @@ templ TOTPSetup(theme Theme, copy PasswordUICopy, state totp.TotpFormState, qr [
 			</span>
 			<img class="height: 20%; width: 20%;" src={ fmt.Sprintf("data:image/png;base64,%s", qr) }/>
 			<div data-component="totp">
-                                <span>Required settings:</span>
+				<span>Required settings:</span>
 				<ul>
-					<li>SHA256</li>
+					<li>SHA1</li>
 					<li>30 seconds</li>
 					<li>6 digit</li>
 				</ul>
 				<div data-component="totp-secret">
 					{ totpSecret }
 				</div>
-                                // <div data-component="button">Copy</div>
 			</div>
 			<input
 				data-component="input"
@@ -43,8 +42,35 @@ templ TOTPSetup(theme Theme, copy PasswordUICopy, state totp.TotpFormState, qr [
 				required
 				placeholder={ copy.TotpPlaceholder }
 			/>
-			<button data-component="button">{ copy.TotpTest }</button>
-			<a data-component="button" href={ skipRedirectUrl }>{ copy.TotpSkip }</a>
+
+			<button data-component="button" type="submit" name="action" value="test"  > { copy.TotpTest   } </button>
+			<button data-component="button" type="submit" name="action" value="skip"  > { copy.TotpSkip   } </button>
+			<button data-component="button" type="submit" name="action" value="reroll"> { copy.TotpReroll } </button>
+
 		</form>
 	}
 }
+
+
+
+templ TOTPCheck(theme Theme, copy PasswordUICopy, state totp.TotpFormState) {
+	<form data-component="form" method="post">
+		@formAlert(copy, state.Errors, "danger")
+		<input type="hidden" name="action" value="code"/>
+		<span>
+			Enter TOTP passcode.
+		</span>
+		<input
+			data-component="input"
+			autofocus
+			type="text"
+			name="code"
+			inputmode="numeric"
+			autocomplete="one-time-code"
+			required
+			placeholder={ copy.TotpPlaceholder }
+		/>
+		<button data-component="button">{ copy.TotpTest }</button>
+	</form>
+}
+

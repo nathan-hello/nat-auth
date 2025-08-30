@@ -1,6 +1,6 @@
 package ui
 
-import "github.com/nathan-hello/nat-auth/providers/password"
+import "github.com/nathan-hello/nat-auth/web"
 
 func getCopyFromErrors(copy PasswordUICopy, errs []error) []string {
 	if len(errs) == 0 {
@@ -8,10 +8,10 @@ func getCopyFromErrors(copy PasswordUICopy, errs []error) []string {
 	}
 
 	// If any system error, show only the internal server error message
-	if password.HasSystemError(errs) {
-		msg, ok := copy.Error[password.ErrInternalServer]
+	if web.HasSystemError(errs) {
+		msg, ok := copy.Error[web.ErrInternalServer]
 		if !ok {
-			msg = DefaultPasswordUICopy().Error[password.ErrInternalServer]
+			msg = DefaultPasswordUICopy().Error[web.ErrInternalServer]
 		}
 		return []string{msg}
 	}

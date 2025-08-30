@@ -11,27 +11,28 @@ import (
 )
 
 type PasswordUICopy struct {
-	RegisterTitle       string
-	RegisterDescription string
-	LoginTitle          string
-	LoginDescription    string
-	Register            string
-	RegisterPrompt      string
-	LoginPrompt         string
-	Login               string
-	ForgotPrompt        string
+	ButtonContinue      string
 	CodeResend          string
 	CodeReturn          string
-	InputUsername       string
-	InputPassword       string
+	ForgotPrompt        string
 	InputCode           string
+	InputPassword       string
 	InputRepeat         string
-	ButtonContinue      string
-	TotpTest            string
-	TotpSkip            string
-	UsernamePlaceholder string
+	InputUsername       string
+	Login               string
+	LoginDescription    string
+	LoginPrompt         string
+	LoginTitle          string
+	Register            string
+	RegisterDescription string
+	RegisterPrompt      string
+	RegisterTitle       string
 	TotpInfo            string
 	TotpPlaceholder     string
+	TotpReroll          string
+	TotpSkip            string
+	TotpTest            string
+	UsernamePlaceholder string
 	Error               map[error]string
 }
 
@@ -101,16 +102,16 @@ var styles []byte
 
 var locations web.Locations
 
-type Ui struct {
+type UiParams struct {
 	password.PasswordUi
 	totp.TotpUi
 	Styles []byte
 }
 
-func New(theme Theme, copy PasswordUICopy, l web.Locations) Ui {
+func New(theme Theme, copy PasswordUICopy, l web.Locations) UiParams {
 	locations = l
 
-	return Ui{
+	return UiParams{
 		PasswordUi: password.PasswordUi{
 			HtmlPageSignUp: func(r *http.Request, state password.AuthFormState) []byte {
 				var buf bytes.Buffer
@@ -135,7 +136,7 @@ func New(theme Theme, copy PasswordUICopy, l web.Locations) Ui {
 		},
 		TotpUi: totp.TotpUi{
 			HtmlPageTotp: func(r *http.Request, state totp.TotpFormState, qr []byte, skipRedirectUrl string, totpSecret string) []byte {
-				var buf bytes.Buffer 
+				var buf bytes.Buffer
 				TOTPSetup(theme, copy, state, qr, skipRedirectUrl, totpSecret)
 				return buf.Bytes()
 			},

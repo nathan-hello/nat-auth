@@ -2,7 +2,6 @@ package totp
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/nathan-hello/nat-auth/auth"
 	"github.com/nathan-hello/nat-auth/web"
@@ -73,22 +72,54 @@ func (p TotpHandler) totp_POST(w http.ResponseWriter, r *http.Request) {
 		w.Write(p.Ui.HtmlPageTotp(r, TotpFormState{Errors: []error{web.ErrInternalServer}}, nil, "/", ""))
 		return
 	}
+
 	qr, err := QRTOTP(secret, user.Username, p.Issuer)
 	if err != nil {
 		w.Write(p.Ui.HtmlPageTotp(r, TotpFormState{Errors: []error{web.ErrInternalServer}}, nil, "/", ""))
 		return
 	}
+
 	if err := r.ParseForm(); err != nil {
 		w.Write(p.Ui.HtmlPageTotp(r, TotpFormState{Errors: []error{web.ErrInternalServer}}, qr, "/", ""))
 		return
 	}
 
-	otp := strings.TrimSpace(r.FormValue("code"))
 
-	if CheckTOTP(otp, secret) != nil {
-		w.Write(p.Ui.HtmlPageTotp(r, TotpFormState{Errors: []error{web.ErrTOTPMismatch}}, qr, "/", secret))
+	action := r.FormValue("action")
+	switch (action) {
+	case "test":
+		otp := r.FormValue("code")
+
+		err := CheckTOTP(otp, secret) 
+		if err != nil {
+			w.Write(p.Ui.HtmlPageTotp(r, TotpFormState{Errors: []error{web.ErrTOTPMismatch}}, qr, "/", secret))
+			return
+		}
+
+		w.Write(p.Ui.HtmlPageTotp(r, TotpFormState{Success: true}, qr, "/", secret))
+		return
+		
+
+	case "skip":
+		web.HttpRedirect(w, r, p.Redirects.AfterTotpSkip, "/")
+		return
+
+	case "reroll":
+		secret, err := GenerateSecret()
+		if err != nil {
+			w.Write(p.Ui.HtmlPageTotp(r, TotpFormState{Errors: []error{err}}, nil, "/", ""))
+			return
+		}
+		err = p.Database.InsertSecret(user.Subject, secret)
+		if err != nil {
+			w.Write(p.Ui.HtmlPageTotp(r, TotpFormState{Errors: []error{err}}, nil, "/", ""))
+			return
+		}
+
+		http.Redirect(w, r, "/auth/totp", http.StatusSeeOther)
 		return
 	}
 
-	web.HttpRedirect(w, r, p.Redirects.AfterTotpVerification, "/")
+	w.WriteHeader(http.StatusBadRequest)
+
 }
